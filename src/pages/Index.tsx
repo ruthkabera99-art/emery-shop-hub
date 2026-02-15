@@ -6,6 +6,7 @@ import FeaturedProducts from "@/components/FeaturedProducts";
 import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
+import FloatingSmsButton from "@/components/FloatingSmsButton";
 
 const Index = () => (
   <div className="min-h-screen">
@@ -20,6 +21,7 @@ const Index = () => (
       <Newsletter />
     </main>
     <Footer />
+    <FloatingSmsButton />
   </div>
 );
 
