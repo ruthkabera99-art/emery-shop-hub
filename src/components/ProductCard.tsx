@@ -45,6 +45,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
           </Button>
         </div>
         <div className="pt-4 px-1">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{product.brand}</p>
           <h3 className="font-medium text-sm">{product.name}</h3>
           <div className="flex items-center gap-1 mt-1">
             <Star className="h-3 w-3 fill-accent text-accent" />
