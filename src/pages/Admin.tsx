@@ -4,10 +4,11 @@ import { products, testimonials } from "@/data/products";
 import { getImage } from "@/lib/images";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LayoutDashboard, Package, MessageSquare, Settings, Star, DollarSign, Users, TrendingUp, ArrowLeft, Trash2, Edit } from "lucide-react";
+import { LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users, TrendingUp, ArrowLeft, Trash2, Edit } from "lucide-react";
+import { formatPrice } from "@/lib/currency";
 
 const stats = [
-  { label: "Total Revenue", value: "$24,580", icon: DollarSign, change: "+12%" },
+  { label: "Total Revenue", value: "€24,580", icon: Euro, change: "+12%" },
   { label: "Orders", value: "342", icon: Package, change: "+8%" },
   { label: "Customers", value: "1,247", icon: Users, change: "+22%" },
   { label: "Avg. Rating", value: "4.8", icon: Star, change: "+0.2" },
@@ -81,9 +82,9 @@ const Admin = () => {
                   <thead className="bg-muted"><tr>{["Order", "Customer", "Product", "Amount", "Status"].map((h) => <th key={h} className="text-left p-3 font-medium text-muted-foreground">{h}</th>)}</tr></thead>
                   <tbody>
                     {[
-                      { id: "#1247", customer: "Sarah M.", product: "Ivory Stiletto Pump", amount: "$159", status: "Delivered" },
-                      { id: "#1246", customer: "James K.", product: "Classic Oxford Leather", amount: "$189", status: "Shipped" },
-                      { id: "#1245", customer: "Emily R.", product: "Velocity Pro Runner", amount: "$219", status: "Processing" },
+                      { id: "#1247", customer: "Sarah M.", product: "Jordan 1 Retro High OG", amount: "€179.00", status: "Delivered" },
+                      { id: "#1246", customer: "James K.", product: "Jordan 4 Retro Bred", amount: "€229.00", status: "Shipped" },
+                      { id: "#1245", customer: "Emily R.", product: "Air Max Volt Runner", amount: "€219.00", status: "Processing" },
                     ].map((o) => (
                       <tr key={o.id} className="border-t border-border">
                         <td className="p-3 font-medium">{o.id}</td>
@@ -111,7 +112,7 @@ const Admin = () => {
                     <img src={getImage(p.image)} alt={p.name} className="w-16 h-16 rounded-md object-cover" />
                     <div className="flex-1">
                       <h3 className="font-medium">{p.name}</h3>
-                      <p className="text-sm text-muted-foreground">{p.category} · ${p.price}</p>
+                      <p className="text-sm text-muted-foreground">{p.category} · {formatPrice(p.price)}</p>
                     </div>
                     <div className="flex gap-2">
                       <Button size="icon" variant="outline" className="h-8 w-8"><Edit className="h-3 w-3" /></Button>
@@ -144,7 +145,7 @@ const Admin = () => {
               <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg space-y-4">
                 <div><label className="text-sm font-medium mb-1 block">Store Name</label><Input defaultValue="Emery Collection Shop" /></div>
                 <div><label className="text-sm font-medium mb-1 block">Contact Email</label><Input defaultValue="hello@emerycollection.com" /></div>
-                <div><label className="text-sm font-medium mb-1 block">Currency</label><Input defaultValue="USD" /></div>
+                <div><label className="text-sm font-medium mb-1 block">Currency</label><Input defaultValue="EUR (€)" /></div>
                 <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Save Changes</Button>
               </div>
             </div>

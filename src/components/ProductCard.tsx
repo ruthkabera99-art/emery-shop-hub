@@ -3,6 +3,7 @@ import { Star, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
 import { Product } from "@/data/products";
 import { getImage } from "@/lib/images";
+import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
 import ImageModal from "@/components/ImageModal";
@@ -50,9 +51,9 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
             <span className="text-xs text-muted-foreground">{product.rating} ({product.reviews})</span>
           </div>
           <div className="flex items-center gap-2 mt-2">
-            <span className="font-semibold">${product.price}</span>
+            <span className="font-semibold">{formatPrice(product.price)}</span>
             {product.originalPrice && (
-              <span className="text-sm text-muted-foreground line-through">${product.originalPrice}</span>
+              <span className="text-sm text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
             )}
           </div>
         </div>

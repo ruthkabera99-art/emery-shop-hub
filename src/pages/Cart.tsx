@@ -2,12 +2,15 @@ import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { getImage } from "@/lib/images";
+import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
 
 const Cart = () => {
   const { items, updateQuantity, removeFromCart, totalPrice, totalItems } = useCart();
+  const shipping = totalPrice >= 100 ? 0 : 9.99;
+  const total = totalPrice + shipping;
 
   return (
     <div className="min-h-screen">
@@ -30,7 +33,7 @@ const Cart = () => {
                   <img src={getImage(item.image)} alt={item.name} className="w-24 h-24 object-cover rounded-md" />
                   <div className="flex-1">
                     <h3 className="font-medium">{item.name}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">${item.price}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.price)}</p>
                     <div className="flex items-center gap-2 mt-3">
                       <button onClick={() => updateQuantity(item.id, item.quantity - 1)} className="p-1 rounded-md hover:bg-secondary"><Minus className="h-3 w-3" /></button>
                       <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
@@ -44,13 +47,16 @@ const Cart = () => {
             <div className="bg-card rounded-lg p-6 shadow-soft h-fit">
               <h2 className="font-display text-xl font-bold mb-4">Order Summary</h2>
               <div className="space-y-2 text-sm mb-6">
-                <div className="flex justify-between"><span className="text-muted-foreground">Items ({totalItems})</span><span>${totalPrice}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{totalPrice >= 100 ? "Free" : "$9.99"}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Items ({totalItems})</span><span>{formatPrice(totalPrice)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span></div>
                 <div className="border-t border-border pt-2 flex justify-between font-semibold text-base">
-                  <span>Total</span><span>${totalPrice >= 100 ? totalPrice : totalPrice + 9.99}</span>
+                  <span>Total</span><span>{formatPrice(total)}</span>
                 </div>
               </div>
-              <Button className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">Checkout</Button>
+              <Button asChild className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold">
+                <Link to="/checkout">Proceed to Checkout</Link>
+              </Button>
+              <p className="text-xs text-center text-muted-foreground mt-3">Free shipping on orders over €100</p>
             </div>
           </div>
         )}
