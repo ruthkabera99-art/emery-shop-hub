@@ -5,7 +5,11 @@ import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users, TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Activity, Clock } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import {
+  LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
+  TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Activity, Clock, Send, RefreshCw,
+} from "lucide-react";
 
 const stats = [
   { label: "Total Revenue", value: "€24,580", icon: Euro, change: "+12%" },
@@ -17,72 +21,156 @@ const stats = [
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
   { id: "visitors", label: "Visitors", icon: Eye },
+  { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "products", label: "Products", icon: Package },
-  { id: "reviews", label: "Reviews", icon: MessageSquare },
+  { id: "reviews", label: "Reviews", icon: Star },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
-// Simulated visitor tracking (replace with real backend when Cloud is enabled)
-const useVisitorTracker = () => {
-  const [onlineNow, setOnlineNow] = useState(0);
-  const [totalToday, setTotalToday] = useState(0);
-  const [totalWeek, setTotalWeek] = useState(0);
-  const [totalMonth, setTotalMonth] = useState(0);
-  const [recentVisitors, setRecentVisitors] = useState<{ time: string; page: string; country: string; device: string }[]>([]);
-  const [hourlyData, setHourlyData] = useState<{ hour: string; visitors: number }[]>([]);
+interface Visitor {
+  id: string;
+  session_id: string;
+  page: string;
+  country: string;
+  device: string;
+  browser: string;
+  created_at: string;
+}
 
+interface Conversation {
+  id: string;
+  visitor_session_id: string;
+  visitor_name: string;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Message {
+  id: string;
+  conversation_id: string;
+  sender_type: string;
+  content: string;
+  is_read: boolean;
+  created_at: string;
+}
+
+// ── Visitor Stats Hook (real DB) ──
+const useVisitorStats = () => {
+  const [visitors, setVisitors] = useState<Visitor[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data } = await supabase
+      .from("visitors")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .limit(100);
+    if (data) setVisitors(data);
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  // Subscribe to new visitors
   useEffect(() => {
-    // Simulate initial data
-    const baseOnline = Math.floor(Math.random() * 15) + 3;
-    setOnlineNow(baseOnline);
-    setTotalToday(Math.floor(Math.random() * 200) + 80);
-    setTotalWeek(Math.floor(Math.random() * 1200) + 500);
-    setTotalMonth(Math.floor(Math.random() * 4500) + 2000);
-
-    const countries = ["France", "Germany", "Netherlands", "Italy", "Spain", "UK", "Belgium", "Portugal", "Sweden", "Poland"];
-    const pages = ["/", "/shop", "/shop?cat=mens", "/shop?cat=womens", "/cart", "/about", "/contact", "/shop?cat=kids", "/shop?cat=sports", "/shop?cat=sale"];
-    const devices = ["Mobile", "Desktop", "Tablet"];
-
-    const initialVisitors = Array.from({ length: 20 }, (_, i) => ({
-      time: `${Math.floor(Math.random() * 60)}m ago`,
-      page: pages[Math.floor(Math.random() * pages.length)],
-      country: countries[Math.floor(Math.random() * countries.length)],
-      device: devices[Math.floor(Math.random() * devices.length)],
-    }));
-    setRecentVisitors(initialVisitors);
-
-    const hours = Array.from({ length: 24 }, (_, i) => ({
-      hour: `${i.toString().padStart(2, "0")}:00`,
-      visitors: Math.floor(Math.random() * 30) + 2,
-    }));
-    setHourlyData(hours);
-
-    // Simulate live updates
-    const interval = setInterval(() => {
-      setOnlineNow((prev) => Math.max(1, prev + (Math.random() > 0.5 ? 1 : -1)));
-      setTotalToday((prev) => prev + (Math.random() > 0.7 ? 1 : 0));
-      if (Math.random() > 0.6) {
-        setRecentVisitors((prev) => [
-          {
-            time: "Just now",
-            page: pages[Math.floor(Math.random() * pages.length)],
-            country: countries[Math.floor(Math.random() * countries.length)],
-            device: devices[Math.floor(Math.random() * devices.length)],
-          },
-          ...prev.slice(0, 19),
-        ]);
-      }
-    }, 3000);
-
-    return () => clearInterval(interval);
+    const channel = supabase
+      .channel("admin-visitors")
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "visitors" }, (payload) => {
+        setVisitors((prev) => [payload.new as Visitor, ...prev.slice(0, 99)]);
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
   }, []);
 
-  return { onlineNow, totalToday, totalWeek, totalMonth, recentVisitors, hourlyData };
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(todayStart); monthStart.setMonth(monthStart.getMonth() - 1);
+
+  const totalToday = visitors.filter((v) => new Date(v.created_at) >= todayStart).length;
+  const totalWeek = visitors.filter((v) => new Date(v.created_at) >= weekStart).length;
+  const totalMonth = visitors.filter((v) => new Date(v.created_at) >= monthStart).length;
+
+  return { visitors, totalToday, totalWeek, totalMonth, loading, refresh };
+};
+
+// ── Chat Hook (real DB) ──
+const useAdminChat = () => {
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [activeConv, setActiveConv] = useState<string | null>(null);
+
+  // Load conversations
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("*")
+        .order("updated_at", { ascending: false });
+      if (data) setConversations(data);
+    };
+    load();
+
+    const channel = supabase
+      .channel("admin-conversations")
+      .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => { load(); })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  // Load messages for active conversation
+  useEffect(() => {
+    if (!activeConv) { setMessages([]); return; }
+
+    const load = async () => {
+      const { data } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", activeConv)
+        .order("created_at", { ascending: true });
+      if (data) setMessages(data);
+    };
+    load();
+
+    const channel = supabase
+      .channel(`admin-msgs-${activeConv}`)
+      .on("postgres_changes", {
+        event: "INSERT", schema: "public", table: "messages",
+        filter: `conversation_id=eq.${activeConv}`,
+      }, (payload) => {
+        setMessages((prev) => {
+          if (prev.find((m) => m.id === (payload.new as Message).id)) return prev;
+          return [...prev, payload.new as Message];
+        });
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [activeConv]);
+
+  const sendReply = async (content: string) => {
+    if (!activeConv || !content.trim()) return;
+    await supabase.from("messages").insert({
+      conversation_id: activeConv,
+      sender_type: "admin",
+      content: content.trim(),
+    });
+  };
+
+  return { conversations, messages, activeConv, setActiveConv, sendReply };
 };
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const visitors = useVisitorTracker();
+  const visitorStats = useVisitorStats();
+  const chat = useAdminChat();
+  const [replyInput, setReplyInput] = useState("");
+
+  const handleSendReply = async () => {
+    await chat.sendReply(replyInput);
+    setReplyInput("");
+  };
 
   return (
     <div className="min-h-screen bg-muted">
@@ -97,7 +185,13 @@ const Admin = () => {
                 onClick={() => setActiveTab(t.id)}
                 className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${activeTab === t.id ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"}`}
               >
-                <t.icon className="h-4 w-4" /> {t.label}
+                <t.icon className="h-4 w-4" />
+                {t.label}
+                {t.id === "chat" && chat.conversations.filter((c) => c.status === "open").length > 0 && (
+                  <span className="ml-auto bg-accent text-accent-foreground text-xs rounded-full px-1.5 py-0.5">
+                    {chat.conversations.filter((c) => c.status === "open").length}
+                  </span>
+                )}
               </button>
             ))}
           </nav>
@@ -121,20 +215,18 @@ const Admin = () => {
             ))}
           </div>
 
+          {/* ── DASHBOARD ── */}
           {activeTab === "dashboard" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Dashboard</h1>
-
-              {/* Live Online Badge */}
               <div className="bg-card rounded-lg p-4 shadow-soft mb-6 flex items-center gap-3">
                 <span className="relative flex h-3 w-3">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
-                <span className="text-sm font-medium">{visitors.onlineNow} visitors online right now</span>
-                <span className="ml-auto text-xs text-muted-foreground">Updated live</span>
+                <span className="text-sm font-medium">{visitorStats.totalToday} visitors today</span>
+                <span className="ml-auto text-xs text-muted-foreground">From database</span>
               </div>
-
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 {stats.map((s) => (
                   <div key={s.label} className="bg-card rounded-lg p-5 shadow-soft">
@@ -173,70 +265,37 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── VISITORS ── */}
           {activeTab === "visitors" && (
             <div>
-              <h1 className="font-display text-3xl font-bold mb-8">Visitor Tracking</h1>
+              <div className="flex items-center justify-between mb-8">
+                <h1 className="font-display text-3xl font-bold">Visitor Tracking</h1>
+                <Button variant="outline" size="sm" onClick={visitorStats.refresh} disabled={visitorStats.loading}>
+                  <RefreshCw className={`h-4 w-4 mr-1 ${visitorStats.loading ? "animate-spin" : ""}`} /> Refresh
+                </Button>
+              </div>
 
-              {/* Live Stats */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <div className="bg-card rounded-lg p-5 shadow-soft">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Activity className="h-5 w-5 text-green-500" />
-                    <span className="relative flex h-2 w-2">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                    </span>
-                  </div>
-                  <p className="text-3xl font-bold">{visitors.onlineNow}</p>
-                  <p className="text-xs text-muted-foreground">Online Now</p>
-                </div>
+              <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
                 <div className="bg-card rounded-lg p-5 shadow-soft">
                   <Clock className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitors.totalToday}</p>
+                  <p className="text-3xl font-bold">{visitorStats.totalToday}</p>
                   <p className="text-xs text-muted-foreground">Today</p>
                 </div>
                 <div className="bg-card rounded-lg p-5 shadow-soft">
                   <Eye className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitors.totalWeek.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">{visitorStats.totalWeek}</p>
                   <p className="text-xs text-muted-foreground">This Week</p>
                 </div>
                 <div className="bg-card rounded-lg p-5 shadow-soft">
                   <Globe className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitors.totalMonth.toLocaleString()}</p>
+                  <p className="text-3xl font-bold">{visitorStats.totalMonth}</p>
                   <p className="text-xs text-muted-foreground">This Month</p>
                 </div>
               </div>
 
-              {/* Hourly Traffic */}
-              <div className="bg-card rounded-lg p-6 shadow-soft mb-8">
-                <h2 className="font-display text-lg font-bold mb-4">Today's Traffic (Hourly)</h2>
-                <div className="flex items-end gap-1 h-32">
-                  {visitors.hourlyData.map((h, i) => {
-                    const maxVal = Math.max(...visitors.hourlyData.map((d) => d.visitors));
-                    const height = maxVal > 0 ? (h.visitors / maxVal) * 100 : 0;
-                    const currentHour = new Date().getHours();
-                    return (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-1 group relative">
-                        <div className="absolute -top-8 bg-foreground text-background text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                          {h.hour}: {h.visitors}
-                        </div>
-                        <div
-                          className={`w-full rounded-t transition-all ${i === currentHour ? "bg-accent" : "bg-accent/30"}`}
-                          style={{ height: `${height}%`, minHeight: "2px" }}
-                        />
-                      </div>
-                    );
-                  })}
-                </div>
-                <div className="flex justify-between mt-2 text-[10px] text-muted-foreground">
-                  <span>00:00</span><span>06:00</span><span>12:00</span><span>18:00</span><span>23:00</span>
-                </div>
-              </div>
-
-              {/* Live Visitor Feed */}
               <div className="bg-card rounded-lg shadow-soft overflow-hidden">
                 <div className="p-4 border-b border-border flex items-center justify-between">
-                  <h2 className="font-display text-lg font-bold">Live Visitor Feed</h2>
+                  <h2 className="font-display text-lg font-bold">Recent Visitors</h2>
                   <span className="flex items-center gap-1.5 text-xs text-green-600 font-medium">
                     <span className="relative flex h-2 w-2">
                       <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
@@ -249,35 +308,117 @@ const Admin = () => {
                   <table className="w-full text-sm">
                     <thead className="bg-muted sticky top-0">
                       <tr>
-                        {["Time", "Page", "Country", "Device"].map((h) => (
+                        {["Time", "Page", "Device", "Browser"].map((h) => (
                           <th key={h} className="text-left p-3 font-medium text-muted-foreground">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
-                      {visitors.recentVisitors.map((v, i) => (
-                        <tr key={i} className={`border-t border-border ${i === 0 && v.time === "Just now" ? "bg-accent/5" : ""}`}>
-                          <td className="p-3 text-muted-foreground">{v.time}</td>
+                      {visitorStats.visitors.map((v) => (
+                        <tr key={v.id} className="border-t border-border">
+                          <td className="p-3 text-muted-foreground text-xs">{new Date(v.created_at).toLocaleString()}</td>
                           <td className="p-3 font-mono text-xs">{v.page}</td>
-                          <td className="p-3">{v.country}</td>
                           <td className="p-3">
                             <span className={`px-2 py-0.5 rounded-full text-xs ${v.device === "Mobile" ? "bg-blue-100 text-blue-700" : v.device === "Desktop" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
                               {v.device}
                             </span>
                           </td>
+                          <td className="p-3 text-xs">{v.browser}</td>
                         </tr>
                       ))}
+                      {visitorStats.visitors.length === 0 && (
+                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No visitors tracked yet. Visit the store to see data appear here.</td></tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
               </div>
-
-              <p className="text-xs text-muted-foreground text-center mt-4">
-                ⚠️ Visitor data is simulated. Enable Lovable Cloud for real tracking with analytics.
-              </p>
             </div>
           )}
 
+          {/* ── CHAT ── */}
+          {activeTab === "chat" && (
+            <div>
+              <h1 className="font-display text-3xl font-bold mb-8">Live Chat</h1>
+              <div className="flex gap-4 h-[calc(100vh-200px)]">
+                {/* Conversation list */}
+                <div className="w-72 bg-card rounded-lg shadow-soft overflow-hidden flex flex-col shrink-0">
+                  <div className="p-4 border-b border-border">
+                    <p className="text-sm font-semibold">Conversations</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto">
+                    {chat.conversations.length === 0 && (
+                      <p className="p-4 text-sm text-muted-foreground text-center">No conversations yet</p>
+                    )}
+                    {chat.conversations.map((c) => (
+                      <button
+                        key={c.id}
+                        onClick={() => chat.setActiveConv(c.id)}
+                        className={`w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors ${chat.activeConv === c.id ? "bg-muted" : ""}`}
+                      >
+                        <div className="flex items-center justify-between">
+                          <p className="text-sm font-medium">{c.visitor_name}</p>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.status === "open" ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
+                            {c.status}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {new Date(c.updated_at).toLocaleString()}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Chat area */}
+                <div className="flex-1 bg-card rounded-lg shadow-soft overflow-hidden flex flex-col">
+                  {!chat.activeConv ? (
+                    <div className="flex-1 flex items-center justify-center text-muted-foreground">
+                      <p className="text-sm">Select a conversation to start replying</p>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="p-4 border-b border-border">
+                        <p className="text-sm font-semibold">
+                          {chat.conversations.find((c) => c.id === chat.activeConv)?.visitor_name || "Visitor"}
+                        </p>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                        {chat.messages.map((m) => (
+                          <div key={m.id} className={`flex ${m.sender_type === "admin" ? "justify-end" : "justify-start"}`}>
+                            <div className={`max-w-[70%] px-3 py-2 rounded-2xl text-sm ${
+                              m.sender_type === "admin"
+                                ? "bg-accent text-accent-foreground rounded-br-md"
+                                : "bg-muted text-foreground rounded-bl-md"
+                            }`}>
+                              {m.content}
+                              <p className="text-[10px] opacity-60 mt-1">
+                                {new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                      <div className="p-3 border-t border-border flex gap-2">
+                        <Input
+                          placeholder="Type a reply..."
+                          value={replyInput}
+                          onChange={(e) => setReplyInput(e.target.value)}
+                          onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
+                          className="text-sm"
+                        />
+                        <Button size="icon" onClick={handleSendReply} className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0">
+                          <Send className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── PRODUCTS ── */}
           {activeTab === "products" && (
             <div>
               <div className="flex items-center justify-between mb-8">
@@ -302,6 +443,7 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── REVIEWS ── */}
           {activeTab === "reviews" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Customer Reviews</h1>
@@ -317,6 +459,7 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── SETTINGS ── */}
           {activeTab === "settings" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
