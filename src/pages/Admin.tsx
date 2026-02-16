@@ -1,32 +1,35 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
-import { products, testimonials } from "@/data/products";
-import { getImage } from "@/lib/images";
+import { products as initialProducts, testimonials as initialTestimonials, Product } from "@/data/products";
+import { getImage, imageMap } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
-  TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Activity, Clock, Send, RefreshCw,
+  TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
+  Plus, Search, X, Save, Check,
 } from "lucide-react";
 
-const stats = [
-  { label: "Total Revenue", value: "€24,580", icon: Euro, change: "+12%" },
-  { label: "Orders", value: "342", icon: Package, change: "+8%" },
-  { label: "Customers", value: "1,247", icon: Users, change: "+22%" },
-  { label: "Avg. Rating", value: "4.8", icon: Star, change: "+0.2" },
-];
-
-const tabs = [
-  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { id: "visitors", label: "Visitors", icon: Eye },
-  { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "products", label: "Products", icon: Package },
-  { id: "reviews", label: "Reviews", icon: Star },
-  { id: "settings", label: "Settings", icon: Settings },
-];
-
+// ── Types ──
 interface Visitor {
   id: string;
   session_id: string;
@@ -55,7 +58,55 @@ interface Message {
   created_at: string;
 }
 
-// ── Visitor Stats Hook (real DB) ──
+interface Review {
+  name: string;
+  text: string;
+  rating: number;
+  location: string;
+}
+
+interface SettingsData {
+  storeName: string;
+  contactEmail: string;
+  currency: string;
+  phone: string;
+  address: string;
+}
+
+const tabs = [
+  { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "visitors", label: "Visitors", icon: Eye },
+  { id: "chat", label: "Chat", icon: MessageSquare },
+  { id: "products", label: "Products", icon: Package },
+  { id: "reviews", label: "Reviews", icon: Star },
+  { id: "settings", label: "Settings", icon: Settings },
+];
+
+const IMAGE_OPTIONS = Object.keys(imageMap);
+
+const CATEGORIES = ["mens", "womens", "kids", "sports", "sale"];
+
+const defaultProduct: Product = {
+  id: "",
+  name: "",
+  price: 0,
+  image: "shoe-mens",
+  category: "mens",
+  rating: 4.5,
+  reviews: 0,
+  brand: "",
+  sizes: [38, 39, 40, 41, 42, 43],
+};
+
+const defaultSettings: SettingsData = {
+  storeName: "Emery Collection Shop",
+  contactEmail: "hello@emerycollection.com",
+  currency: "EUR (€)",
+  phone: "+250 788 000 000",
+  address: "Kigali, Rwanda",
+};
+
+// ── Visitor Stats Hook ──
 const useVisitorStats = () => {
   const [visitors, setVisitors] = useState<Visitor[]>([]);
   const [loading, setLoading] = useState(true);
@@ -73,7 +124,6 @@ const useVisitorStats = () => {
 
   useEffect(() => { refresh(); }, []);
 
-  // Subscribe to new visitors
   useEffect(() => {
     const channel = supabase
       .channel("admin-visitors")
@@ -89,20 +139,22 @@ const useVisitorStats = () => {
   const weekStart = new Date(todayStart); weekStart.setDate(weekStart.getDate() - 7);
   const monthStart = new Date(todayStart); monthStart.setMonth(monthStart.getMonth() - 1);
 
-  const totalToday = visitors.filter((v) => new Date(v.created_at) >= todayStart).length;
-  const totalWeek = visitors.filter((v) => new Date(v.created_at) >= weekStart).length;
-  const totalMonth = visitors.filter((v) => new Date(v.created_at) >= monthStart).length;
-
-  return { visitors, totalToday, totalWeek, totalMonth, loading, refresh };
+  return {
+    visitors,
+    totalToday: visitors.filter((v) => new Date(v.created_at) >= todayStart).length,
+    totalWeek: visitors.filter((v) => new Date(v.created_at) >= weekStart).length,
+    totalMonth: visitors.filter((v) => new Date(v.created_at) >= monthStart).length,
+    loading,
+    refresh,
+  };
 };
 
-// ── Chat Hook (real DB) ──
+// ── Chat Hook ──
 const useAdminChat = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Message[]>([]);
   const [activeConv, setActiveConv] = useState<string | null>(null);
 
-  // Load conversations
   useEffect(() => {
     const load = async () => {
       const { data } = await supabase
@@ -112,7 +164,6 @@ const useAdminChat = () => {
       if (data) setConversations(data);
     };
     load();
-
     const channel = supabase
       .channel("admin-conversations")
       .on("postgres_changes", { event: "*", schema: "public", table: "conversations" }, () => { load(); })
@@ -120,10 +171,8 @@ const useAdminChat = () => {
     return () => { supabase.removeChannel(channel); };
   }, []);
 
-  // Load messages for active conversation
   useEffect(() => {
     if (!activeConv) { setMessages([]); return; }
-
     const load = async () => {
       const { data } = await supabase
         .from("messages")
@@ -133,7 +182,6 @@ const useAdminChat = () => {
       if (data) setMessages(data);
     };
     load();
-
     const channel = supabase
       .channel(`admin-msgs-${activeConv}`)
       .on("postgres_changes", {
@@ -158,19 +206,150 @@ const useAdminChat = () => {
     });
   };
 
-  return { conversations, messages, activeConv, setActiveConv, sendReply };
+  const closeConversation = async (convId: string) => {
+    await supabase
+      .from("conversations")
+      .update({ status: "closed" })
+      .eq("id", convId);
+    if (activeConv === convId) setActiveConv(null);
+  };
+
+  return { conversations, messages, activeConv, setActiveConv, sendReply, closeConversation };
 };
 
+// ── Main Component ──
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const { toast } = useToast();
+
+  // Visitor & Chat
   const visitorStats = useVisitorStats();
   const chat = useAdminChat();
   const [replyInput, setReplyInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+
+  // Products
+  const [productsList, setProductsList] = useState<Product[]>(() => {
+    const saved = localStorage.getItem("admin_products");
+    return saved ? JSON.parse(saved) : initialProducts;
+  });
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilter, setProductFilter] = useState("all");
+  const [productDialog, setProductDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [productForm, setProductForm] = useState<Product>(defaultProduct);
+  const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
+
+  // Reviews
+  const [reviewsList, setReviewsList] = useState<Review[]>(() => {
+    const saved = localStorage.getItem("admin_reviews");
+    return saved ? JSON.parse(saved) : initialTestimonials;
+  });
+  const [reviewDialog, setReviewDialog] = useState(false);
+  const [reviewForm, setReviewForm] = useState<Review>({ name: "", text: "", rating: 5, location: "" });
+  const [deleteReviewIdx, setDeleteReviewIdx] = useState<number | null>(null);
+
+  // Settings
+  const [settings, setSettings] = useState<SettingsData>(() => {
+    const saved = localStorage.getItem("admin_settings");
+    return saved ? JSON.parse(saved) : defaultSettings;
+  });
+
+  // Persist products
+  useEffect(() => {
+    localStorage.setItem("admin_products", JSON.stringify(productsList));
+  }, [productsList]);
+
+  // Persist reviews
+  useEffect(() => {
+    localStorage.setItem("admin_reviews", JSON.stringify(reviewsList));
+  }, [reviewsList]);
+
+  // Chat auto-scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat.messages]);
 
   const handleSendReply = async () => {
     await chat.sendReply(replyInput);
     setReplyInput("");
   };
+
+  // ── Product CRUD ──
+  const openAddProduct = () => {
+    setEditingProduct(null);
+    setProductForm({ ...defaultProduct, id: crypto.randomUUID() });
+    setProductDialog(true);
+  };
+
+  const openEditProduct = (p: Product) => {
+    setEditingProduct(p);
+    setProductForm({ ...p });
+    setProductDialog(true);
+  };
+
+  const saveProduct = () => {
+    if (!productForm.name.trim() || !productForm.brand.trim() || productForm.price <= 0) {
+      toast({ title: "Validation Error", description: "Name, brand and valid price are required.", variant: "destructive" });
+      return;
+    }
+    if (editingProduct) {
+      setProductsList((prev) => prev.map((p) => p.id === editingProduct.id ? { ...productForm } : p));
+      toast({ title: "Product Updated", description: `${productForm.name} has been updated.` });
+    } else {
+      setProductsList((prev) => [productForm, ...prev]);
+      toast({ title: "Product Added", description: `${productForm.name} has been added.` });
+    }
+    setProductDialog(false);
+  };
+
+  const deleteProduct = () => {
+    if (!deleteDialog) return;
+    const p = productsList.find((x) => x.id === deleteDialog);
+    setProductsList((prev) => prev.filter((x) => x.id !== deleteDialog));
+    setDeleteDialog(null);
+    toast({ title: "Product Deleted", description: `${p?.name || "Product"} has been removed.` });
+  };
+
+  const filteredProducts = productsList.filter((p) => {
+    const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
+      p.brand.toLowerCase().includes(productSearch.toLowerCase());
+    const matchCategory = productFilter === "all" || p.category === productFilter;
+    return matchSearch && matchCategory;
+  });
+
+  // ── Review CRUD ──
+  const saveReview = () => {
+    if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
+      toast({ title: "Validation Error", description: "Name and review text are required.", variant: "destructive" });
+      return;
+    }
+    setReviewsList((prev) => [reviewForm, ...prev]);
+    setReviewDialog(false);
+    setReviewForm({ name: "", text: "", rating: 5, location: "" });
+    toast({ title: "Review Added", description: "New review has been added." });
+  };
+
+  const deleteReview = () => {
+    if (deleteReviewIdx === null) return;
+    setReviewsList((prev) => prev.filter((_, i) => i !== deleteReviewIdx));
+    setDeleteReviewIdx(null);
+    toast({ title: "Review Deleted", description: "Review has been removed." });
+  };
+
+  // ── Settings Save ──
+  const saveSettings = () => {
+    localStorage.setItem("admin_settings", JSON.stringify(settings));
+    toast({ title: "Settings Saved", description: "Your settings have been saved successfully." });
+  };
+
+  // Dashboard stats
+  const stats = [
+    { label: "Total Products", value: productsList.length.toString(), icon: Package, change: `${CATEGORIES.length} categories` },
+    { label: "Total Reviews", value: reviewsList.length.toString(), icon: Star, change: `Avg ${(reviewsList.reduce((a, r) => a + r.rating, 0) / (reviewsList.length || 1)).toFixed(1)}★` },
+    { label: "Visitors Today", value: visitorStats.totalToday.toString(), icon: Users, change: `${visitorStats.totalMonth} this month` },
+    { label: "Open Chats", value: chat.conversations.filter((c) => c.status === "open").length.toString(), icon: MessageSquare, change: `${chat.conversations.length} total` },
+  ];
 
   return (
     <div className="min-h-screen bg-muted">
@@ -183,7 +362,11 @@ const Admin = () => {
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${activeTab === t.id ? "bg-sidebar-accent text-sidebar-accent-foreground" : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"}`}
+                className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-md text-sm font-medium transition-colors ${
+                  activeTab === t.id
+                    ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                    : "text-primary-foreground/70 hover:text-primary-foreground hover:bg-sidebar-accent/50"
+                }`}
               >
                 <t.icon className="h-4 w-4" />
                 {t.label}
@@ -200,15 +383,17 @@ const Admin = () => {
           </Link>
         </aside>
 
-        {/* Main */}
+        {/* Main Content */}
         <div className="flex-1 p-6 lg:p-10">
           {/* Mobile tabs */}
-          <div className="flex gap-2 mb-6 lg:hidden overflow-x-auto">
+          <div className="flex gap-2 mb-6 lg:hidden overflow-x-auto pb-2">
             {tabs.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setActiveTab(t.id)}
-                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-card text-foreground"}`}
+                className={`flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap ${
+                  activeTab === t.id ? "bg-primary text-primary-foreground" : "bg-card text-foreground"
+                }`}
               >
                 <t.icon className="h-4 w-4" /> {t.label}
               </button>
@@ -225,40 +410,66 @@ const Admin = () => {
                   <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
                 </span>
                 <span className="text-sm font-medium">{visitorStats.totalToday} visitors today</span>
-                <span className="ml-auto text-xs text-muted-foreground">From database</span>
+                <span className="ml-auto text-xs text-muted-foreground">Live from database</span>
               </div>
+
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
                 {stats.map((s) => (
                   <div key={s.label} className="bg-card rounded-lg p-5 shadow-soft">
                     <div className="flex items-center justify-between mb-2">
                       <s.icon className="h-5 w-5 text-accent" />
-                      <span className="text-xs font-medium text-green-600 flex items-center gap-0.5"><TrendingUp className="h-3 w-3" />{s.change}</span>
+                      <span className="text-xs font-medium text-muted-foreground">{s.change}</span>
                     </div>
                     <p className="text-2xl font-bold">{s.value}</p>
                     <p className="text-xs text-muted-foreground">{s.label}</p>
                   </div>
                 ))}
               </div>
-              <h2 className="font-display text-xl font-bold mb-4">Recent Orders</h2>
+
+              {/* Quick Actions */}
+              <h2 className="font-display text-xl font-bold mb-4">Quick Actions</h2>
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                <button onClick={() => { setActiveTab("products"); setTimeout(openAddProduct, 100); }} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
+                  <Plus className="h-5 w-5 text-accent mb-2" />
+                  <p className="text-sm font-medium">Add Product</p>
+                </button>
+                <button onClick={() => setActiveTab("chat")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
+                  <MessageSquare className="h-5 w-5 text-accent mb-2" />
+                  <p className="text-sm font-medium">View Chats</p>
+                </button>
+                <button onClick={() => setActiveTab("visitors")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
+                  <Eye className="h-5 w-5 text-accent mb-2" />
+                  <p className="text-sm font-medium">Track Visitors</p>
+                </button>
+                <button onClick={() => setActiveTab("settings")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
+                  <Settings className="h-5 w-5 text-accent mb-2" />
+                  <p className="text-sm font-medium">Settings</p>
+                </button>
+              </div>
+
+              {/* Recent Visitors */}
+              <h2 className="font-display text-xl font-bold mb-4">Recent Visitors</h2>
               <div className="bg-card rounded-lg shadow-soft overflow-hidden">
                 <table className="w-full text-sm">
-                  <thead className="bg-muted"><tr>{["Order", "Customer", "Product", "Amount", "Status"].map((h) => <th key={h} className="text-left p-3 font-medium text-muted-foreground">{h}</th>)}</tr></thead>
+                  <thead className="bg-muted">
+                    <tr>
+                      {["Time", "Page", "Device", "Browser"].map((h) => (
+                        <th key={h} className="text-left p-3 font-medium text-muted-foreground">{h}</th>
+                      ))}
+                    </tr>
+                  </thead>
                   <tbody>
-                    {[
-                      { id: "#1247", customer: "Sarah M.", product: "Jordan 1 Retro High OG", amount: "€179.00", status: "Delivered" },
-                      { id: "#1246", customer: "James K.", product: "Jordan 4 Retro Bred", amount: "€229.00", status: "Shipped" },
-                      { id: "#1245", customer: "Emily R.", product: "Air Max Volt Runner", amount: "€219.00", status: "Processing" },
-                      { id: "#1244", customer: "Luca F.", product: "Adidas Samba OG Cream", amount: "€109.00", status: "Delivered" },
-                      { id: "#1243", customer: "Anna B.", product: "New Balance 550", amount: "€129.00", status: "Shipped" },
-                    ].map((o) => (
-                      <tr key={o.id} className="border-t border-border">
-                        <td className="p-3 font-medium">{o.id}</td>
-                        <td className="p-3">{o.customer}</td>
-                        <td className="p-3">{o.product}</td>
-                        <td className="p-3">{o.amount}</td>
-                        <td className="p-3"><span className={`px-2 py-1 rounded-full text-xs font-medium ${o.status === "Delivered" ? "bg-green-100 text-green-700" : o.status === "Shipped" ? "bg-blue-100 text-blue-700" : "bg-yellow-100 text-yellow-700"}`}>{o.status}</span></td>
+                    {visitorStats.visitors.slice(0, 5).map((v) => (
+                      <tr key={v.id} className="border-t border-border">
+                        <td className="p-3 text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString()}</td>
+                        <td className="p-3 font-mono text-xs">{v.page?.split("?")[0]}</td>
+                        <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">{v.device}</span></td>
+                        <td className="p-3 text-xs">{v.browser}</td>
                       </tr>
                     ))}
+                    {visitorStats.visitors.length === 0 && (
+                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground text-sm">No visitors yet</td></tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -276,21 +487,17 @@ const Admin = () => {
               </div>
 
               <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-                <div className="bg-card rounded-lg p-5 shadow-soft">
-                  <Clock className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitorStats.totalToday}</p>
-                  <p className="text-xs text-muted-foreground">Today</p>
-                </div>
-                <div className="bg-card rounded-lg p-5 shadow-soft">
-                  <Eye className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitorStats.totalWeek}</p>
-                  <p className="text-xs text-muted-foreground">This Week</p>
-                </div>
-                <div className="bg-card rounded-lg p-5 shadow-soft">
-                  <Globe className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-3xl font-bold">{visitorStats.totalMonth}</p>
-                  <p className="text-xs text-muted-foreground">This Month</p>
-                </div>
+                {[
+                  { icon: Clock, val: visitorStats.totalToday, label: "Today" },
+                  { icon: Eye, val: visitorStats.totalWeek, label: "This Week" },
+                  { icon: Globe, val: visitorStats.totalMonth, label: "This Month" },
+                ].map((s) => (
+                  <div key={s.label} className="bg-card rounded-lg p-5 shadow-soft">
+                    <s.icon className="h-5 w-5 text-accent mb-2" />
+                    <p className="text-3xl font-bold">{s.val}</p>
+                    <p className="text-xs text-muted-foreground">{s.label}</p>
+                  </div>
+                ))}
               </div>
 
               <div className="bg-card rounded-lg shadow-soft overflow-hidden">
@@ -317,17 +524,19 @@ const Admin = () => {
                       {visitorStats.visitors.map((v) => (
                         <tr key={v.id} className="border-t border-border">
                           <td className="p-3 text-muted-foreground text-xs">{new Date(v.created_at).toLocaleString()}</td>
-                          <td className="p-3 font-mono text-xs">{v.page}</td>
+                          <td className="p-3 font-mono text-xs">{v.page?.split("?")[0]}</td>
                           <td className="p-3">
-                            <span className={`px-2 py-0.5 rounded-full text-xs ${v.device === "Mobile" ? "bg-blue-100 text-blue-700" : v.device === "Desktop" ? "bg-purple-100 text-purple-700" : "bg-orange-100 text-orange-700"}`}>
-                              {v.device}
-                            </span>
+                            <span className={`px-2 py-0.5 rounded-full text-xs ${
+                              v.device === "Mobile" ? "bg-blue-100 text-blue-700" :
+                              v.device === "Desktop" ? "bg-purple-100 text-purple-700" :
+                              "bg-orange-100 text-orange-700"
+                            }`}>{v.device}</span>
                           </td>
                           <td className="p-3 text-xs">{v.browser}</td>
                         </tr>
                       ))}
                       {visitorStats.visitors.length === 0 && (
-                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No visitors tracked yet. Visit the store to see data appear here.</td></tr>
+                        <tr><td colSpan={4} className="p-8 text-center text-muted-foreground">No visitors tracked yet.</td></tr>
                       )}
                     </tbody>
                   </table>
@@ -344,7 +553,7 @@ const Admin = () => {
                 {/* Conversation list */}
                 <div className="w-72 bg-card rounded-lg shadow-soft overflow-hidden flex flex-col shrink-0">
                   <div className="p-4 border-b border-border">
-                    <p className="text-sm font-semibold">Conversations</p>
+                    <p className="text-sm font-semibold">Conversations ({chat.conversations.length})</p>
                   </div>
                   <div className="flex-1 overflow-y-auto">
                     {chat.conversations.length === 0 && (
@@ -354,13 +563,15 @@ const Admin = () => {
                       <button
                         key={c.id}
                         onClick={() => chat.setActiveConv(c.id)}
-                        className={`w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors ${chat.activeConv === c.id ? "bg-muted" : ""}`}
+                        className={`w-full text-left p-4 border-b border-border hover:bg-muted/50 transition-colors ${
+                          chat.activeConv === c.id ? "bg-muted" : ""
+                        }`}
                       >
                         <div className="flex items-center justify-between">
                           <p className="text-sm font-medium">{c.visitor_name}</p>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${c.status === "open" ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"}`}>
-                            {c.status}
-                          </span>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            c.status === "open" ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+                          }`}>{c.status}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
                           {new Date(c.updated_at).toLocaleString()}
@@ -374,14 +585,29 @@ const Admin = () => {
                 <div className="flex-1 bg-card rounded-lg shadow-soft overflow-hidden flex flex-col">
                   {!chat.activeConv ? (
                     <div className="flex-1 flex items-center justify-center text-muted-foreground">
-                      <p className="text-sm">Select a conversation to start replying</p>
+                      <div className="text-center">
+                        <MessageSquare className="h-10 w-10 mx-auto mb-3 opacity-30" />
+                        <p className="text-sm">Select a conversation to start replying</p>
+                      </div>
                     </div>
                   ) : (
                     <>
-                      <div className="p-4 border-b border-border">
+                      <div className="p-4 border-b border-border flex items-center justify-between">
                         <p className="text-sm font-semibold">
                           {chat.conversations.find((c) => c.id === chat.activeConv)?.visitor_name || "Visitor"}
                         </p>
+                        {chat.conversations.find((c) => c.id === chat.activeConv)?.status === "open" && (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => {
+                              chat.closeConversation(chat.activeConv!);
+                              toast({ title: "Chat Closed", description: "Conversation has been closed." });
+                            }}
+                          >
+                            <Check className="h-3 w-3 mr-1" /> Close Chat
+                          </Button>
+                        )}
                       </div>
                       <div className="flex-1 overflow-y-auto p-4 space-y-3">
                         {chat.messages.map((m) => (
@@ -398,6 +624,7 @@ const Admin = () => {
                             </div>
                           </div>
                         ))}
+                        <div ref={chatEndRef} />
                       </div>
                       <div className="p-3 border-t border-border flex gap-2">
                         <Input
@@ -407,7 +634,7 @@ const Admin = () => {
                           onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
                           className="text-sm"
                         />
-                        <Button size="icon" onClick={handleSendReply} className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0">
+                        <Button size="icon" onClick={handleSendReply} disabled={!replyInput.trim()} className="bg-accent text-accent-foreground hover:bg-accent/90 shrink-0">
                           <Send className="h-4 w-4" />
                         </Button>
                       </div>
@@ -421,24 +648,66 @@ const Admin = () => {
           {/* ── PRODUCTS ── */}
           {activeTab === "products" && (
             <div>
-              <div className="flex items-center justify-between mb-8">
-                <h1 className="font-display text-3xl font-bold">Products ({products.length})</h1>
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90">+ Add Product</Button>
+              <div className="flex items-center justify-between mb-6">
+                <h1 className="font-display text-3xl font-bold">Products ({filteredProducts.length})</h1>
+                <Button onClick={openAddProduct} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Plus className="h-4 w-4 mr-1" /> Add Product
+                </Button>
               </div>
-              <div className="grid gap-4">
-                {products.map((p) => (
+
+              {/* Search & Filter */}
+              <div className="flex gap-3 mb-6">
+                <div className="relative flex-1 max-w-sm">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Search products..."
+                    value={productSearch}
+                    onChange={(e) => setProductSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+                <Select value={productFilter} onValueChange={setProductFilter}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Categories</SelectItem>
+                    {CATEGORIES.map((c) => (
+                      <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="grid gap-3">
+                {filteredProducts.map((p) => (
                   <div key={p.id} className="flex items-center gap-4 bg-card rounded-lg p-4 shadow-soft">
-                    <img src={getImage(p.image)} alt={p.name} className="w-16 h-16 rounded-md object-cover" />
-                    <div className="flex-1">
-                      <h3 className="font-medium">{p.name}</h3>
-                      <p className="text-sm text-muted-foreground">{p.brand} · {p.category} · {formatPrice(p.price)}</p>
+                    <img src={getImage(p.image)} alt={p.name} className="w-14 h-14 rounded-md object-cover" />
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-medium text-sm truncate">{p.name}</h3>
+                      <p className="text-xs text-muted-foreground">{p.brand} · {p.category} · {formatPrice(p.price)}
+                        {p.originalPrice && <span className="line-through ml-1 opacity-50">{formatPrice(p.originalPrice)}</span>}
+                      </p>
                     </div>
-                    <div className="flex gap-2">
-                      <Button size="icon" variant="outline" className="h-8 w-8"><Edit className="h-3 w-3" /></Button>
-                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive"><Trash2 className="h-3 w-3" /></Button>
+                    {p.badge && (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent">{p.badge}</span>
+                    )}
+                    <div className="flex gap-1.5">
+                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => openEditProduct(p)}>
+                        <Edit className="h-3 w-3" />
+                      </Button>
+                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteDialog(p.id)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
                     </div>
                   </div>
                 ))}
+                {filteredProducts.length === 0 && (
+                  <div className="bg-card rounded-lg p-8 text-center text-muted-foreground shadow-soft">
+                    <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No products found</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -446,15 +715,38 @@ const Admin = () => {
           {/* ── REVIEWS ── */}
           {activeTab === "reviews" && (
             <div>
-              <h1 className="font-display text-3xl font-bold mb-8">Customer Reviews</h1>
+              <div className="flex items-center justify-between mb-8">
+                <h1 className="font-display text-3xl font-bold">Customer Reviews ({reviewsList.length})</h1>
+                <Button onClick={() => setReviewDialog(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Plus className="h-4 w-4 mr-1" /> Add Review
+                </Button>
+              </div>
               <div className="grid gap-4">
-                {testimonials.map((t, i) => (
+                {reviewsList.map((t, i) => (
                   <div key={i} className="bg-card rounded-lg p-5 shadow-soft">
-                    <div className="flex items-center gap-1 mb-2">{Array.from({ length: t.rating }).map((_, j) => <Star key={j} className="h-4 w-4 fill-accent text-accent" />)}</div>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-1 mb-2">
+                        {Array.from({ length: t.rating }).map((_, j) => (
+                          <Star key={j} className="h-4 w-4 fill-accent text-accent" />
+                        ))}
+                        {Array.from({ length: 5 - t.rating }).map((_, j) => (
+                          <Star key={`e-${j}`} className="h-4 w-4 text-muted" />
+                        ))}
+                      </div>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewIdx(i)}>
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                     <p className="text-sm mb-3">"{t.text}"</p>
                     <p className="text-sm font-medium">{t.name} <span className="text-muted-foreground font-normal">· {t.location}</span></p>
                   </div>
                 ))}
+                {reviewsList.length === 0 && (
+                  <div className="bg-card rounded-lg p-8 text-center text-muted-foreground shadow-soft">
+                    <Star className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No reviews yet</p>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -463,16 +755,194 @@ const Admin = () => {
           {activeTab === "settings" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
-              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg space-y-4">
-                <div><label className="text-sm font-medium mb-1 block">Store Name</label><Input defaultValue="Emery Collection Shop" /></div>
-                <div><label className="text-sm font-medium mb-1 block">Contact Email</label><Input defaultValue="hello@emerycollection.com" /></div>
-                <div><label className="text-sm font-medium mb-1 block">Currency</label><Input defaultValue="EUR (€)" /></div>
-                <Button className="bg-accent text-accent-foreground hover:bg-accent/90">Save Changes</Button>
+              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg space-y-5">
+                <div>
+                  <Label className="mb-1.5 block">Store Name</Label>
+                  <Input value={settings.storeName} onChange={(e) => setSettings({ ...settings, storeName: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block">Contact Email</Label>
+                  <Input type="email" value={settings.contactEmail} onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block">Phone Number</Label>
+                  <Input value={settings.phone} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block">Address</Label>
+                  <Input value={settings.address} onChange={(e) => setSettings({ ...settings, address: e.target.value })} />
+                </div>
+                <div>
+                  <Label className="mb-1.5 block">Currency</Label>
+                  <Input value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value })} />
+                </div>
+                <Button onClick={saveSettings} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                  <Save className="h-4 w-4 mr-1" /> Save Changes
+                </Button>
+              </div>
+
+              {/* Danger Zone */}
+              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-destructive/20">
+                <h3 className="font-display text-lg font-bold text-destructive mb-3">Danger Zone</h3>
+                <p className="text-sm text-muted-foreground mb-4">Reset all products and reviews to their default values.</p>
+                <Button
+                  variant="destructive"
+                  onClick={() => {
+                    setProductsList(initialProducts);
+                    setReviewsList(initialTestimonials);
+                    localStorage.removeItem("admin_products");
+                    localStorage.removeItem("admin_reviews");
+                    toast({ title: "Data Reset", description: "Products and reviews have been reset to defaults." });
+                  }}
+                >
+                  <RefreshCw className="h-4 w-4 mr-1" /> Reset to Defaults
+                </Button>
               </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* ── Product Add/Edit Dialog ── */}
+      <Dialog open={productDialog} onOpenChange={setProductDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="mb-1.5 block">Product Name *</Label>
+              <Input value={productForm.name} onChange={(e) => setProductForm({ ...productForm, name: e.target.value })} placeholder="e.g. Nike Air Max 90" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1.5 block">Price (€) *</Label>
+                <Input type="number" min="0" step="0.01" value={productForm.price || ""} onChange={(e) => setProductForm({ ...productForm, price: parseFloat(e.target.value) || 0 })} />
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Original Price (€)</Label>
+                <Input type="number" min="0" step="0.01" value={productForm.originalPrice || ""} onChange={(e) => setProductForm({ ...productForm, originalPrice: parseFloat(e.target.value) || undefined })} />
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1.5 block">Brand *</Label>
+              <Input value={productForm.brand} onChange={(e) => setProductForm({ ...productForm, brand: e.target.value })} placeholder="e.g. Nike" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1.5 block">Category</Label>
+                <Select value={productForm.category} onValueChange={(v) => setProductForm({ ...productForm, category: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Image</Label>
+                <Select value={productForm.image} onValueChange={(v) => setProductForm({ ...productForm, image: v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {IMAGE_OPTIONS.filter((k) => k !== "hero-banner").map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div>
+              <Label className="mb-1.5 block">Badge (optional)</Label>
+              <Input value={productForm.badge || ""} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value || undefined })} placeholder="e.g. New, Sale, Bestseller" />
+            </div>
+            {productForm.image && (
+              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                <img src={getImage(productForm.image)} alt="Preview" className="w-12 h-12 rounded object-cover" />
+                <span className="text-xs text-muted-foreground">Image preview</span>
+              </div>
+            )}
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={saveProduct} className="bg-accent text-accent-foreground hover:bg-accent/90">
+              {editingProduct ? "Update" : "Add"} Product
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Product Confirm ── */}
+      <Dialog open={!!deleteDialog} onOpenChange={() => setDeleteDialog(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Product</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">
+            Are you sure you want to delete "{productsList.find((p) => p.id === deleteDialog)?.name}"? This action cannot be undone.
+          </p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={deleteProduct}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Add Review Dialog ── */}
+      <Dialog open={reviewDialog} onOpenChange={setReviewDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Review</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div>
+              <Label className="mb-1.5 block">Customer Name *</Label>
+              <Input value={reviewForm.name} onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })} placeholder="e.g. John Doe" />
+            </div>
+            <div>
+              <Label className="mb-1.5 block">Review Text *</Label>
+              <Input value={reviewForm.text} onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })} placeholder="Write the review..." />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <Label className="mb-1.5 block">Rating</Label>
+                <Select value={reviewForm.rating.toString()} onValueChange={(v) => setReviewForm({ ...reviewForm, rating: parseInt(v) })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {[5, 4, 3, 2, 1].map((r) => <SelectItem key={r} value={r.toString()}>{r} Star{r > 1 ? "s" : ""}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Location</Label>
+                <Input value={reviewForm.location} onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })} placeholder="e.g. Kigali" />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button onClick={saveReview} className="bg-accent text-accent-foreground hover:bg-accent/90">Add Review</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Delete Review Confirm ── */}
+      <Dialog open={deleteReviewIdx !== null} onOpenChange={() => setDeleteReviewIdx(null)}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Delete Review</DialogTitle>
+          </DialogHeader>
+          <p className="text-sm text-muted-foreground">Are you sure you want to delete this review? This action cannot be undone.</p>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">Cancel</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={deleteReview}>Delete</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
