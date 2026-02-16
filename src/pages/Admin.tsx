@@ -59,11 +59,29 @@ interface Message {
   created_at: string;
 }
 
-interface Review {
+interface DbProduct {
+  id: string;
   name: string;
-  text: string;
+  price: number;
+  brand: string;
+  category: string;
+  description: string;
+  images: string[];
   rating: number;
-  location: string;
+  reviews_count: number;
+  in_stock: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DbReview {
+  id: string;
+  product_id: string | null;
+  customer_name: string;
+  rating: number;
+  comment: string;
+  status: string;
+  created_at: string;
 }
 
 interface SettingsData {
@@ -84,20 +102,7 @@ const tabs = [
 ];
 
 const IMAGE_OPTIONS = Object.keys(imageMap);
-
 const CATEGORIES = ["mens", "womens", "kids", "sports", "sale"];
-
-const defaultProduct: Product = {
-  id: "",
-  name: "",
-  price: 0,
-  image: "shoe-mens",
-  category: "mens",
-  rating: 4.5,
-  reviews: 0,
-  brand: "",
-  sizes: [38, 39, 40, 41, 42, 43],
-};
 
 const defaultSettings: SettingsData = {
   storeName: "Emery Collection Shop",
@@ -218,53 +223,244 @@ const useAdminChat = () => {
   return { conversations, messages, activeConv, setActiveConv, sendReply, closeConversation };
 };
 
+// ── Products Hook (Supabase) ──
+const useAdminProducts = () => {
+  const [products, setProducts] = useState<DbProduct[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("products")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setProducts(data);
+    if (error) toast({ title: "Error loading products", description: error.message, variant: "destructive" });
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const addProduct = async (product: Partial<DbProduct>) => {
+    const { error } = await supabase.from("products").insert({
+      name: product.name || "",
+      price: product.price || 0,
+      brand: product.brand || "",
+      category: product.category || "mens",
+      description: product.description || "",
+      images: product.images || [],
+      rating: product.rating || 0,
+      reviews_count: product.reviews_count || 0,
+      in_stock: product.in_stock ?? true,
+    });
+    if (error) {
+      toast({ title: "Error adding product", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Product Added", description: `${product.name} has been added.` });
+    await refresh();
+    return true;
+  };
+
+  const updateProduct = async (id: string, product: Partial<DbProduct>) => {
+    const { error } = await supabase.from("products").update({
+      name: product.name,
+      price: product.price,
+      brand: product.brand,
+      category: product.category,
+      description: product.description,
+      images: product.images,
+      rating: product.rating,
+      reviews_count: product.reviews_count,
+      in_stock: product.in_stock,
+    }).eq("id", id);
+    if (error) {
+      toast({ title: "Error updating product", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Product Updated", description: `${product.name} has been updated.` });
+    await refresh();
+    return true;
+  };
+
+  const deleteProduct = async (id: string) => {
+    const p = products.find((x) => x.id === id);
+    const { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error deleting product", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Product Deleted", description: `${p?.name || "Product"} has been removed.` });
+    await refresh();
+    return true;
+  };
+
+  const seedProducts = async () => {
+    const dbProducts = initialProducts.map((p) => ({
+      name: p.name,
+      price: p.price,
+      brand: p.brand,
+      category: p.category,
+      description: "",
+      images: [p.image],
+      rating: p.rating,
+      reviews_count: p.reviews,
+      in_stock: true,
+    }));
+    const { error } = await supabase.from("products").insert(dbProducts);
+    if (error) {
+      toast({ title: "Error seeding products", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Products Seeded", description: `${dbProducts.length} products added to database.` });
+    await refresh();
+  };
+
+  return { products, loading, refresh, addProduct, updateProduct, deleteProduct, seedProducts };
+};
+
+// ── Reviews Hook (Supabase) ──
+const useAdminReviews = () => {
+  const [reviews, setReviews] = useState<DbReview[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data, error } = await supabase
+      .from("reviews")
+      .select("*")
+      .order("created_at", { ascending: false });
+    if (data) setReviews(data);
+    if (error) toast({ title: "Error loading reviews", description: error.message, variant: "destructive" });
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const addReview = async (review: Partial<DbReview>) => {
+    const { error } = await supabase.from("reviews").insert({
+      customer_name: review.customer_name || "",
+      rating: review.rating || 5,
+      comment: review.comment || "",
+      status: "approved",
+    });
+    if (error) {
+      toast({ title: "Error adding review", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Review Added", description: "New review has been added." });
+    await refresh();
+    return true;
+  };
+
+  const deleteReview = async (id: string) => {
+    const { error } = await supabase.from("reviews").delete().eq("id", id);
+    if (error) {
+      toast({ title: "Error deleting review", description: error.message, variant: "destructive" });
+      return false;
+    }
+    toast({ title: "Review Deleted", description: "Review has been removed." });
+    await refresh();
+    return true;
+  };
+
+  const seedReviews = async () => {
+    const dbReviews = initialTestimonials.map((t) => ({
+      customer_name: t.name,
+      rating: t.rating,
+      comment: t.text,
+      status: "approved",
+    }));
+    const { error } = await supabase.from("reviews").insert(dbReviews);
+    if (error) {
+      toast({ title: "Error seeding reviews", description: error.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: "Reviews Seeded", description: `${dbReviews.length} reviews added to database.` });
+    await refresh();
+  };
+
+  return { reviews, loading, refresh, addReview, deleteReview, seedReviews };
+};
+
+// ── Settings Hook (Supabase) ──
+const useAdminSettings = () => {
+  const [settings, setSettings] = useState<SettingsData>(defaultSettings);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  const refresh = async () => {
+    setLoading(true);
+    const { data } = await supabase.from("store_settings").select("*");
+    if (data && data.length > 0) {
+      const map: Record<string, string> = {};
+      data.forEach((row: { key: string; value: string }) => { map[row.key] = row.value; });
+      setSettings({
+        storeName: map.storeName || defaultSettings.storeName,
+        contactEmail: map.contactEmail || defaultSettings.contactEmail,
+        currency: map.currency || defaultSettings.currency,
+        phone: map.phone || defaultSettings.phone,
+        address: map.address || defaultSettings.address,
+      });
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => { refresh(); }, []);
+
+  const saveSettings = async (newSettings: SettingsData) => {
+    const entries = Object.entries(newSettings);
+    for (const [key, value] of entries) {
+      await supabase.from("store_settings").upsert(
+        { key, value, updated_at: new Date().toISOString() },
+        { onConflict: "key" }
+      );
+    }
+    setSettings(newSettings);
+    toast({ title: "Settings Saved", description: "Your settings have been saved to database." });
+  };
+
+  const resetSettings = async () => {
+    await supabase.from("store_settings").delete().neq("key", "");
+    setSettings(defaultSettings);
+    toast({ title: "Settings Reset", description: "Settings have been reset to defaults." });
+  };
+
+  return { settings, setSettings, loading, saveSettings, resetSettings };
+};
+
 // ── Main Component ──
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const { toast } = useToast();
 
-  // Visitor & Chat
+  // Hooks
   const visitorStats = useVisitorStats();
   const chat = useAdminChat();
+  const adminProducts = useAdminProducts();
+  const adminReviews = useAdminReviews();
+  const adminSettings = useAdminSettings();
+
   const [replyInput, setReplyInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
 
-  // Products
-  const [productsList, setProductsList] = useState<Product[]>(() => {
-    const saved = localStorage.getItem("admin_products");
-    return saved ? JSON.parse(saved) : initialProducts;
-  });
+  // Product form state
   const [productSearch, setProductSearch] = useState("");
   const [productFilter, setProductFilter] = useState("all");
   const [productDialog, setProductDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [productForm, setProductForm] = useState<Product & { uploadedImages?: string[] }>(defaultProduct);
+  const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
+  const [productForm, setProductForm] = useState({
+    name: "", price: 0, brand: "", category: "mens", description: "",
+    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
+  });
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
 
-  // Reviews
-  const [reviewsList, setReviewsList] = useState<Review[]>(() => {
-    const saved = localStorage.getItem("admin_reviews");
-    return saved ? JSON.parse(saved) : initialTestimonials;
-  });
+  // Review form state
   const [reviewDialog, setReviewDialog] = useState(false);
-  const [reviewForm, setReviewForm] = useState<Review>({ name: "", text: "", rating: 5, location: "" });
-  const [deleteReviewIdx, setDeleteReviewIdx] = useState<number | null>(null);
-
-  // Settings
-  const [settings, setSettings] = useState<SettingsData>(() => {
-    const saved = localStorage.getItem("admin_settings");
-    return saved ? JSON.parse(saved) : defaultSettings;
-  });
-
-  // Persist products
-  useEffect(() => {
-    localStorage.setItem("admin_products", JSON.stringify(productsList));
-  }, [productsList]);
-
-  // Persist reviews
-  useEffect(() => {
-    localStorage.setItem("admin_reviews", JSON.stringify(reviewsList));
-  }, [reviewsList]);
+  const [reviewForm, setReviewForm] = useState({ customer_name: "", comment: "", rating: 5 });
+  const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
 
   // Chat auto-scroll
   useEffect(() => {
@@ -279,40 +475,41 @@ const Admin = () => {
   // ── Product CRUD ──
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ ...defaultProduct, id: crypto.randomUUID() });
+    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true });
     setProductDialog(true);
   };
 
-  const openEditProduct = (p: Product) => {
+  const openEditProduct = (p: DbProduct) => {
     setEditingProduct(p);
-    setProductForm({ ...p });
+    setProductForm({
+      name: p.name, price: p.price, brand: p.brand, category: p.category,
+      description: p.description || "", images: p.images || [],
+      rating: p.rating || 0, reviews_count: p.reviews_count || 0, in_stock: p.in_stock,
+    });
     setProductDialog(true);
   };
 
-  const saveProduct = () => {
+  const saveProduct = async () => {
     if (!productForm.name.trim() || !productForm.brand.trim() || productForm.price <= 0) {
       toast({ title: "Validation Error", description: "Name, brand and valid price are required.", variant: "destructive" });
       return;
     }
+    let success: boolean;
     if (editingProduct) {
-      setProductsList((prev) => prev.map((p) => p.id === editingProduct.id ? { ...productForm } : p));
-      toast({ title: "Product Updated", description: `${productForm.name} has been updated.` });
+      success = await adminProducts.updateProduct(editingProduct.id, productForm);
     } else {
-      setProductsList((prev) => [productForm, ...prev]);
-      toast({ title: "Product Added", description: `${productForm.name} has been added.` });
+      success = await adminProducts.addProduct(productForm);
     }
-    setProductDialog(false);
+    if (success) setProductDialog(false);
   };
 
-  const deleteProduct = () => {
+  const deleteProduct = async () => {
     if (!deleteDialog) return;
-    const p = productsList.find((x) => x.id === deleteDialog);
-    setProductsList((prev) => prev.filter((x) => x.id !== deleteDialog));
+    await adminProducts.deleteProduct(deleteDialog);
     setDeleteDialog(null);
-    toast({ title: "Product Deleted", description: `${p?.name || "Product"} has been removed.` });
   };
 
-  const filteredProducts = productsList.filter((p) => {
+  const filteredProducts = adminProducts.products.filter((p) => {
     const matchSearch = p.name.toLowerCase().includes(productSearch.toLowerCase()) ||
       p.brand.toLowerCase().includes(productSearch.toLowerCase());
     const matchCategory = productFilter === "all" || p.category === productFilter;
@@ -320,34 +517,28 @@ const Admin = () => {
   });
 
   // ── Review CRUD ──
-  const saveReview = () => {
-    if (!reviewForm.name.trim() || !reviewForm.text.trim()) {
+  const saveReview = async () => {
+    if (!reviewForm.customer_name.trim() || !reviewForm.comment.trim()) {
       toast({ title: "Validation Error", description: "Name and review text are required.", variant: "destructive" });
       return;
     }
-    setReviewsList((prev) => [reviewForm, ...prev]);
-    setReviewDialog(false);
-    setReviewForm({ name: "", text: "", rating: 5, location: "" });
-    toast({ title: "Review Added", description: "New review has been added." });
+    const success = await adminReviews.addReview(reviewForm);
+    if (success) {
+      setReviewDialog(false);
+      setReviewForm({ customer_name: "", comment: "", rating: 5 });
+    }
   };
 
-  const deleteReview = () => {
-    if (deleteReviewIdx === null) return;
-    setReviewsList((prev) => prev.filter((_, i) => i !== deleteReviewIdx));
-    setDeleteReviewIdx(null);
-    toast({ title: "Review Deleted", description: "Review has been removed." });
-  };
-
-  // ── Settings Save ──
-  const saveSettings = () => {
-    localStorage.setItem("admin_settings", JSON.stringify(settings));
-    toast({ title: "Settings Saved", description: "Your settings have been saved successfully." });
+  const deleteReview = async () => {
+    if (!deleteReviewId) return;
+    await adminReviews.deleteReview(deleteReviewId);
+    setDeleteReviewId(null);
   };
 
   // Dashboard stats
   const stats = [
-    { label: "Total Products", value: productsList.length.toString(), icon: Package, change: `${CATEGORIES.length} categories` },
-    { label: "Total Reviews", value: reviewsList.length.toString(), icon: Star, change: `Avg ${(reviewsList.reduce((a, r) => a + r.rating, 0) / (reviewsList.length || 1)).toFixed(1)}★` },
+    { label: "Total Products", value: adminProducts.products.length.toString(), icon: Package, change: `${CATEGORIES.length} categories` },
+    { label: "Total Reviews", value: adminReviews.reviews.length.toString(), icon: Star, change: `Avg ${(adminReviews.reviews.reduce((a, r) => a + r.rating, 0) / (adminReviews.reviews.length || 1)).toFixed(1)}★` },
     { label: "Visitors Today", value: visitorStats.totalToday.toString(), icon: Users, change: `${visitorStats.totalMonth} this month` },
     { label: "Open Chats", value: chat.conversations.filter((c) => c.status === "open").length.toString(), icon: MessageSquare, change: `${chat.conversations.length} total` },
   ];
@@ -447,6 +638,22 @@ const Admin = () => {
                   <p className="text-sm font-medium">Settings</p>
                 </button>
               </div>
+
+              {/* Seed Data */}
+              {adminProducts.products.length === 0 && (
+                <div className="bg-card rounded-lg p-6 shadow-soft mb-8">
+                  <h3 className="font-display text-lg font-bold mb-2">No products in database</h3>
+                  <p className="text-sm text-muted-foreground mb-4">Seed the database with initial product data to get started.</p>
+                  <div className="flex gap-3">
+                    <Button onClick={adminProducts.seedProducts} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                      <Plus className="h-4 w-4 mr-1" /> Seed Products
+                    </Button>
+                    <Button onClick={adminReviews.seedReviews} variant="outline">
+                      <Plus className="h-4 w-4 mr-1" /> Seed Reviews
+                    </Button>
+                  </div>
+                </div>
+              )}
 
               {/* Recent Visitors */}
               <h2 className="font-display text-xl font-bold mb-4">Recent Visitors</h2>
@@ -651,9 +858,16 @@ const Admin = () => {
             <div>
               <div className="flex items-center justify-between mb-6">
                 <h1 className="font-display text-3xl font-bold">Products ({filteredProducts.length})</h1>
-                <Button onClick={openAddProduct} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Plus className="h-4 w-4 mr-1" /> Add Product
-                </Button>
+                <div className="flex gap-2">
+                  {adminProducts.products.length === 0 && (
+                    <Button variant="outline" onClick={adminProducts.seedProducts}>
+                      <RefreshCw className="h-4 w-4 mr-1" /> Seed Data
+                    </Button>
+                  )}
+                  <Button onClick={openAddProduct} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Plus className="h-4 w-4 mr-1" /> Add Product
+                  </Button>
+                </div>
               </div>
 
               {/* Search & Filter */}
@@ -681,28 +895,29 @@ const Admin = () => {
               </div>
 
               <div className="grid gap-3">
-                {filteredProducts.map((p) => (
-                  <div key={p.id} className="flex items-center gap-4 bg-card rounded-lg p-4 shadow-soft">
-                    <img src={getImage(p.image)} alt={p.name} className="w-14 h-14 rounded-md object-cover" />
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-medium text-sm truncate">{p.name}</h3>
-                      <p className="text-xs text-muted-foreground">{p.brand} · {p.category} · {formatPrice(p.price)}
-                        {p.originalPrice && <span className="line-through ml-1 opacity-50">{formatPrice(p.originalPrice)}</span>}
-                      </p>
+                {filteredProducts.map((p) => {
+                  const imgSrc = p.images?.[0]?.startsWith("http") ? p.images[0] : getImage(p.images?.[0] || "shoe-mens");
+                  return (
+                    <div key={p.id} className="flex items-center gap-4 bg-card rounded-lg p-4 shadow-soft">
+                      <img src={imgSrc} alt={p.name} className="w-14 h-14 rounded-md object-cover" />
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-medium text-sm truncate">{p.name}</h3>
+                        <p className="text-xs text-muted-foreground">{p.brand} · {p.category} · {formatPrice(p.price)}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${p.in_stock ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}`}>
+                        {p.in_stock ? "In Stock" : "Out of Stock"}
+                      </span>
+                      <div className="flex gap-1.5">
+                        <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => openEditProduct(p)}>
+                          <Edit className="h-3 w-3" />
+                        </Button>
+                        <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteDialog(p.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
-                    {p.badge && (
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-accent/10 text-accent">{p.badge}</span>
-                    )}
-                    <div className="flex gap-1.5">
-                      <Button size="icon" variant="outline" className="h-8 w-8" onClick={() => openEditProduct(p)}>
-                        <Edit className="h-3 w-3" />
-                      </Button>
-                      <Button size="icon" variant="outline" className="h-8 w-8 text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setDeleteDialog(p.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </div>
-                  </div>
-                ))}
+                  );
+                })}
                 {filteredProducts.length === 0 && (
                   <div className="bg-card rounded-lg p-8 text-center text-muted-foreground shadow-soft">
                     <Package className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -717,32 +932,44 @@ const Admin = () => {
           {activeTab === "reviews" && (
             <div>
               <div className="flex items-center justify-between mb-8">
-                <h1 className="font-display text-3xl font-bold">Customer Reviews ({reviewsList.length})</h1>
-                <Button onClick={() => setReviewDialog(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Plus className="h-4 w-4 mr-1" /> Add Review
-                </Button>
+                <h1 className="font-display text-3xl font-bold">Customer Reviews ({adminReviews.reviews.length})</h1>
+                <div className="flex gap-2">
+                  {adminReviews.reviews.length === 0 && (
+                    <Button variant="outline" onClick={adminReviews.seedReviews}>
+                      <RefreshCw className="h-4 w-4 mr-1" /> Seed Reviews
+                    </Button>
+                  )}
+                  <Button onClick={() => setReviewDialog(true)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Plus className="h-4 w-4 mr-1" /> Add Review
+                  </Button>
+                </div>
               </div>
               <div className="grid gap-4">
-                {reviewsList.map((t, i) => (
-                  <div key={i} className="bg-card rounded-lg p-5 shadow-soft">
+                {adminReviews.reviews.map((r) => (
+                  <div key={r.id} className="bg-card rounded-lg p-5 shadow-soft">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-1 mb-2">
-                        {Array.from({ length: t.rating }).map((_, j) => (
+                        {Array.from({ length: r.rating }).map((_, j) => (
                           <Star key={j} className="h-4 w-4 fill-accent text-accent" />
                         ))}
-                        {Array.from({ length: 5 - t.rating }).map((_, j) => (
+                        {Array.from({ length: 5 - r.rating }).map((_, j) => (
                           <Star key={`e-${j}`} className="h-4 w-4 text-muted" />
                         ))}
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewIdx(i)}>
+                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewId(r.id)}>
                         <Trash2 className="h-3 w-3" />
                       </Button>
                     </div>
-                    <p className="text-sm mb-3">"{t.text}"</p>
-                    <p className="text-sm font-medium">{t.name} <span className="text-muted-foreground font-normal">· {t.location}</span></p>
+                    <p className="text-sm mb-3">"{r.comment}"</p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-sm font-medium">{r.customer_name}</p>
+                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                        r.status === "approved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                      }`}>{r.status}</span>
+                    </div>
                   </div>
                 ))}
-                {reviewsList.length === 0 && (
+                {adminReviews.reviews.length === 0 && (
                   <div className="bg-card rounded-lg p-8 text-center text-muted-foreground shadow-soft">
                     <Star className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">No reviews yet</p>
@@ -759,25 +986,25 @@ const Admin = () => {
               <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg space-y-5">
                 <div>
                   <Label className="mb-1.5 block">Store Name</Label>
-                  <Input value={settings.storeName} onChange={(e) => setSettings({ ...settings, storeName: e.target.value })} />
+                  <Input value={adminSettings.settings.storeName} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, storeName: e.target.value })} />
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Contact Email</Label>
-                  <Input type="email" value={settings.contactEmail} onChange={(e) => setSettings({ ...settings, contactEmail: e.target.value })} />
+                  <Input type="email" value={adminSettings.settings.contactEmail} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, contactEmail: e.target.value })} />
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Phone Number</Label>
-                  <Input value={settings.phone} onChange={(e) => setSettings({ ...settings, phone: e.target.value })} />
+                  <Input value={adminSettings.settings.phone} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, phone: e.target.value })} />
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Address</Label>
-                  <Input value={settings.address} onChange={(e) => setSettings({ ...settings, address: e.target.value })} />
+                  <Input value={adminSettings.settings.address} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, address: e.target.value })} />
                 </div>
                 <div>
                   <Label className="mb-1.5 block">Currency</Label>
-                  <Input value={settings.currency} onChange={(e) => setSettings({ ...settings, currency: e.target.value })} />
+                  <Input value={adminSettings.settings.currency} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, currency: e.target.value })} />
                 </div>
-                <Button onClick={saveSettings} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                <Button onClick={() => adminSettings.saveSettings(adminSettings.settings)} className="bg-accent text-accent-foreground hover:bg-accent/90">
                   <Save className="h-4 w-4 mr-1" /> Save Changes
                 </Button>
               </div>
@@ -785,17 +1012,8 @@ const Admin = () => {
               {/* Danger Zone */}
               <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-destructive/20">
                 <h3 className="font-display text-lg font-bold text-destructive mb-3">Danger Zone</h3>
-                <p className="text-sm text-muted-foreground mb-4">Reset all products and reviews to their default values.</p>
-                <Button
-                  variant="destructive"
-                  onClick={() => {
-                    setProductsList(initialProducts);
-                    setReviewsList(initialTestimonials);
-                    localStorage.removeItem("admin_products");
-                    localStorage.removeItem("admin_reviews");
-                    toast({ title: "Data Reset", description: "Products and reviews have been reset to defaults." });
-                  }}
-                >
+                <p className="text-sm text-muted-foreground mb-4">Reset settings to their default values.</p>
+                <Button variant="destructive" onClick={adminSettings.resetSettings}>
                   <RefreshCw className="h-4 w-4 mr-1" /> Reset to Defaults
                 </Button>
               </div>
@@ -821,8 +1039,8 @@ const Admin = () => {
                 <Input type="number" min="0" step="0.01" value={productForm.price || ""} onChange={(e) => setProductForm({ ...productForm, price: parseFloat(e.target.value) || 0 })} />
               </div>
               <div>
-                <Label className="mb-1.5 block">Original Price (€)</Label>
-                <Input type="number" min="0" step="0.01" value={productForm.originalPrice || ""} onChange={(e) => setProductForm({ ...productForm, originalPrice: parseFloat(e.target.value) || undefined })} />
+                <Label className="mb-1.5 block">Rating</Label>
+                <Input type="number" min="0" max="5" step="0.1" value={productForm.rating || ""} onChange={(e) => setProductForm({ ...productForm, rating: parseFloat(e.target.value) || 0 })} />
               </div>
             </div>
             <div>
@@ -840,30 +1058,25 @@ const Admin = () => {
                 </Select>
               </div>
               <div>
-                <Label className="mb-1.5 block">Preset Image</Label>
-                <Select value={productForm.image} onValueChange={(v) => setProductForm({ ...productForm, image: v })}>
+                <Label className="mb-1.5 block">In Stock</Label>
+                <Select value={productForm.in_stock ? "yes" : "no"} onValueChange={(v) => setProductForm({ ...productForm, in_stock: v === "yes" })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {IMAGE_OPTIONS.filter((k) => k !== "hero-banner").map((k) => <SelectItem key={k} value={k}>{k}</SelectItem>)}
+                    <SelectItem value="yes">Yes</SelectItem>
+                    <SelectItem value="no">No</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
             </div>
+            <div>
+              <Label className="mb-1.5 block">Description</Label>
+              <Input value={productForm.description} onChange={(e) => setProductForm({ ...productForm, description: e.target.value })} placeholder="Product description..." />
+            </div>
             <ImageUploader
-              images={productForm.uploadedImages || []}
-              onImagesChange={(imgs) => setProductForm({ ...productForm, uploadedImages: imgs })}
+              images={productForm.images.filter((img) => img.startsWith("http"))}
+              onImagesChange={(imgs) => setProductForm({ ...productForm, images: imgs })}
               maxImages={10}
             />
-            <div>
-              <Label className="mb-1.5 block">Badge (optional)</Label>
-              <Input value={productForm.badge || ""} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value || undefined })} placeholder="e.g. New, Sale, Bestseller" />
-            </div>
-            {productForm.image && (
-              <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
-                <img src={getImage(productForm.image)} alt="Preview" className="w-12 h-12 rounded object-cover" />
-                <span className="text-xs text-muted-foreground">Preset image preview</span>
-              </div>
-            )}
           </div>
           <DialogFooter>
             <DialogClose asChild>
@@ -883,7 +1096,7 @@ const Admin = () => {
             <DialogTitle>Delete Product</DialogTitle>
           </DialogHeader>
           <p className="text-sm text-muted-foreground">
-            Are you sure you want to delete "{productsList.find((p) => p.id === deleteDialog)?.name}"? This action cannot be undone.
+            Are you sure you want to delete "{adminProducts.products.find((p) => p.id === deleteDialog)?.name}"? This action cannot be undone.
           </p>
           <DialogFooter>
             <DialogClose asChild>
@@ -903,26 +1116,20 @@ const Admin = () => {
           <div className="space-y-4 py-2">
             <div>
               <Label className="mb-1.5 block">Customer Name *</Label>
-              <Input value={reviewForm.name} onChange={(e) => setReviewForm({ ...reviewForm, name: e.target.value })} placeholder="e.g. John Doe" />
+              <Input value={reviewForm.customer_name} onChange={(e) => setReviewForm({ ...reviewForm, customer_name: e.target.value })} placeholder="e.g. John Doe" />
             </div>
             <div>
               <Label className="mb-1.5 block">Review Text *</Label>
-              <Input value={reviewForm.text} onChange={(e) => setReviewForm({ ...reviewForm, text: e.target.value })} placeholder="Write the review..." />
+              <Input value={reviewForm.comment} onChange={(e) => setReviewForm({ ...reviewForm, comment: e.target.value })} placeholder="Write the review..." />
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="mb-1.5 block">Rating</Label>
-                <Select value={reviewForm.rating.toString()} onValueChange={(v) => setReviewForm({ ...reviewForm, rating: parseInt(v) })}>
-                  <SelectTrigger><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    {[5, 4, 3, 2, 1].map((r) => <SelectItem key={r} value={r.toString()}>{r} Star{r > 1 ? "s" : ""}</SelectItem>)}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label className="mb-1.5 block">Location</Label>
-                <Input value={reviewForm.location} onChange={(e) => setReviewForm({ ...reviewForm, location: e.target.value })} placeholder="e.g. Kigali" />
-              </div>
+            <div>
+              <Label className="mb-1.5 block">Rating</Label>
+              <Select value={reviewForm.rating.toString()} onValueChange={(v) => setReviewForm({ ...reviewForm, rating: parseInt(v) })}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  {[5, 4, 3, 2, 1].map((r) => <SelectItem key={r} value={r.toString()}>{r} Star{r > 1 ? "s" : ""}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
           </div>
           <DialogFooter>
@@ -935,7 +1142,7 @@ const Admin = () => {
       </Dialog>
 
       {/* ── Delete Review Confirm ── */}
-      <Dialog open={deleteReviewIdx !== null} onOpenChange={() => setDeleteReviewIdx(null)}>
+      <Dialog open={deleteReviewId !== null} onOpenChange={() => setDeleteReviewId(null)}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Delete Review</DialogTitle>
