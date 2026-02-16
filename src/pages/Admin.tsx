@@ -28,6 +28,7 @@ import {
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check,
 } from "lucide-react";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 // ── Types ──
 interface Visitor {
@@ -237,7 +238,7 @@ const Admin = () => {
   const [productFilter, setProductFilter] = useState("all");
   const [productDialog, setProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [productForm, setProductForm] = useState<Product>(defaultProduct);
+  const [productForm, setProductForm] = useState<Product & { uploadedImages?: string[] }>(defaultProduct);
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
 
   // Reviews
@@ -805,7 +806,7 @@ const Admin = () => {
 
       {/* ── Product Add/Edit Dialog ── */}
       <Dialog open={productDialog} onOpenChange={setProductDialog}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>{editingProduct ? "Edit Product" : "Add New Product"}</DialogTitle>
           </DialogHeader>
@@ -839,7 +840,7 @@ const Admin = () => {
                 </Select>
               </div>
               <div>
-                <Label className="mb-1.5 block">Image</Label>
+                <Label className="mb-1.5 block">Preset Image</Label>
                 <Select value={productForm.image} onValueChange={(v) => setProductForm({ ...productForm, image: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -848,6 +849,11 @@ const Admin = () => {
                 </Select>
               </div>
             </div>
+            <ImageUploader
+              images={productForm.uploadedImages || []}
+              onImagesChange={(imgs) => setProductForm({ ...productForm, uploadedImages: imgs })}
+              maxImages={10}
+            />
             <div>
               <Label className="mb-1.5 block">Badge (optional)</Label>
               <Input value={productForm.badge || ""} onChange={(e) => setProductForm({ ...productForm, badge: e.target.value || undefined })} placeholder="e.g. New, Sale, Bestseller" />
@@ -855,7 +861,7 @@ const Admin = () => {
             {productForm.image && (
               <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
                 <img src={getImage(productForm.image)} alt="Preview" className="w-12 h-12 rounded object-cover" />
-                <span className="text-xs text-muted-foreground">Image preview</span>
+                <span className="text-xs text-muted-foreground">Preset image preview</span>
               </div>
             )}
           </div>
