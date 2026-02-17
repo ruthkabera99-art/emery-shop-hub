@@ -18,4 +18,8 @@ export const imageMap: Record<string, string> = {
   "hero-banner": heroBanner,
 };
 
-export const getImage = (key: string) => imageMap[key] || "";
+export const getImage = (key: string) => {
+  // If it's a full URL (from Supabase storage), return as-is
+  if (key.startsWith("http")) return key;
+  return imageMap[key] || "";
+};
