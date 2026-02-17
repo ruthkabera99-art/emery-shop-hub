@@ -2,16 +2,19 @@ import { useState } from "react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
-import { products, categories } from "@/data/products";
+import { categories } from "@/data/products";
+import { useProducts } from "@/hooks/useProducts";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const ITEMS_PER_PAGE = 12;
 
 const Shop = () => {
   const [activeCategory, setActiveCategory] = useState("all");
   const [page, setPage] = useState(1);
+  const { data: products = [], isLoading } = useProducts();
+
   const filtered = activeCategory === "all" ? products : products.filter((p) => p.category === activeCategory);
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
   const paginated = filtered.slice(0, page * ITEMS_PER_PAGE);
 
   const handleCategoryChange = (slug: string) => {
@@ -44,17 +47,31 @@ const Shop = () => {
             </button>
           ))}
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {paginated.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
-        </div>
-        {paginated.length < filtered.length && (
-          <div className="text-center mt-10">
-            <Button onClick={() => setPage((p) => p + 1)} variant="outline" className="px-8">
-              Load More ({filtered.length - paginated.length} remaining)
-            </Button>
+        {isLoading ? (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <div key={i} className="space-y-3">
+                <Skeleton className="aspect-square w-full rounded-lg" />
+                <Skeleton className="h-4 w-3/4" />
+                <Skeleton className="h-4 w-1/2" />
+              </div>
+            ))}
           </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+              {paginated.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
+            </div>
+            {paginated.length < filtered.length && (
+              <div className="text-center mt-10">
+                <Button onClick={() => setPage((p) => p + 1)} variant="outline" className="px-8">
+                  Load More ({filtered.length - paginated.length} remaining)
+                </Button>
+              </div>
+            )}
+            {filtered.length === 0 && <p className="text-center text-muted-foreground py-20">No products found in this category.</p>}
+          </>
         )}
-        {filtered.length === 0 && <p className="text-center text-muted-foreground py-20">No products found in this category.</p>}
       </main>
       <Footer />
     </div>

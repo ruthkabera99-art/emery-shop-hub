@@ -12,9 +12,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
   const { addToCart } = useCart();
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Show all available images for browsing
-  const allImageKeys = ["shoe-mens", "shoe-womens", "shoe-kids", "shoe-sports", "shoe-casual", "shoe-boots", "shoe-sale"];
-  const productImages = [product.image, ...allImageKeys.filter((k) => k !== product.image)];
+  const productImages = [product.image];
 
   return (
     <>
