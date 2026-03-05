@@ -434,7 +434,29 @@ const useAdminSettings = () => {
 // ── Main Component ──
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Auth check
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+      if (!session?.user) {
+        navigate("/admin/login", { replace: true });
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+      if (!session?.user) {
+        navigate("/admin/login", { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   // Hooks
   const visitorStats = useVisitorStats();
@@ -442,6 +464,22 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const adminReviews = useAdminReviews();
   const adminSettings = useAdminSettings();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({ title: "Logged out", description: "You have been signed out." });
+    navigate("/admin/login");
+  };
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   const [replyInput, setReplyInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
