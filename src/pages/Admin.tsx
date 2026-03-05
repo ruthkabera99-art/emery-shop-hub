@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { products as initialProducts, testimonials as initialTestimonials, Product } from "@/data/products";
 import { getImage, imageMap } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
@@ -434,19 +434,10 @@ const useAdminSettings = () => {
 // ── Main Component ──
 const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
-  const { toast } = useToast();
-
-  // Hooks
-  const visitorStats = useVisitorStats();
-  const chat = useAdminChat();
-  const adminProducts = useAdminProducts();
-  const adminReviews = useAdminReviews();
-  const adminSettings = useAdminSettings();
-
+  const [authChecked, setAuthChecked] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [replyInput, setReplyInput] = useState("");
   const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Product form state
   const [productSearch, setProductSearch] = useState("");
   const [productFilter, setProductFilter] = useState("all");
   const [productDialog, setProductDialog] = useState(false);
@@ -456,16 +447,59 @@ const Admin = () => {
     images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
   });
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
-
-  // Review form state
   const [reviewDialog, setReviewDialog] = useState(false);
   const [reviewForm, setReviewForm] = useState({ customer_name: "", comment: "", rating: 5 });
   const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
+
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const visitorStats = useVisitorStats();
+  const chat = useAdminChat();
+  const adminProducts = useAdminProducts();
+  const adminReviews = useAdminReviews();
+  const adminSettings = useAdminSettings();
+
+  // Auth check
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+      if (!session?.user) {
+        navigate("/admin/login", { replace: true });
+      }
+    });
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUser(session?.user ?? null);
+      setAuthChecked(true);
+      if (!session?.user) {
+        navigate("/admin/login", { replace: true });
+      }
+    });
+    return () => subscription.unsubscribe();
+  }, [navigate]);
 
   // Chat auto-scroll
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [chat.messages]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    toast({ title: "Logged out", description: "You have been signed out." });
+    navigate("/admin/login");
+  };
+
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-muted-foreground">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
 
   const handleSendReply = async () => {
     await chat.sendReply(replyInput);
@@ -570,9 +604,15 @@ const Admin = () => {
               </button>
             ))}
           </nav>
-          <Link to="/" className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-10">
+          <Link to="/" className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-6">
             <ArrowLeft className="h-4 w-4" /> Back to Store
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-2"
+          >
+            <ArrowLeft className="h-4 w-4" /> Sign Out
+          </button>
         </aside>
 
         {/* Main Content */}
