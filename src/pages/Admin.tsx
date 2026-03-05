@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { products as initialProducts, testimonials as initialTestimonials, Product } from "@/data/products";
 import { getImage, imageMap } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
