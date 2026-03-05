@@ -254,6 +254,7 @@ const useAdminProducts = () => {
       rating: product.rating || 0,
       reviews_count: product.reviews_count || 0,
       in_stock: product.in_stock ?? true,
+      badge: product.badge || null,
     });
     if (error) {
       toast({ title: "Error adding product", description: error.message, variant: "destructive" });
