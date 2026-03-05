@@ -70,6 +70,7 @@ interface DbProduct {
   rating: number;
   reviews_count: number;
   in_stock: boolean;
+  badge: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -253,6 +254,7 @@ const useAdminProducts = () => {
       rating: product.rating || 0,
       reviews_count: product.reviews_count || 0,
       in_stock: product.in_stock ?? true,
+      badge: product.badge || null,
     });
     if (error) {
       toast({ title: "Error adding product", description: error.message, variant: "destructive" });
@@ -274,6 +276,7 @@ const useAdminProducts = () => {
       rating: product.rating,
       reviews_count: product.reviews_count,
       in_stock: product.in_stock,
+      badge: product.badge || null,
     }).eq("id", id);
     if (error) {
       toast({ title: "Error updating product", description: error.message, variant: "destructive" });
@@ -297,6 +300,8 @@ const useAdminProducts = () => {
   };
 
   const seedProducts = async () => {
+    // Delete existing seeded products first, then re-insert with badges
+    await supabase.from("products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     const dbProducts = initialProducts.map((p) => ({
       name: p.name,
       price: p.price,
@@ -307,13 +312,14 @@ const useAdminProducts = () => {
       rating: p.rating,
       reviews_count: p.reviews,
       in_stock: true,
+      badge: p.badge || null,
     }));
     const { error } = await supabase.from("products").insert(dbProducts);
     if (error) {
       toast({ title: "Error seeding products", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Products Seeded", description: `${dbProducts.length} products added to database.` });
+    toast({ title: "Products Seeded", description: `${dbProducts.length} products added with badges.` });
     await refresh();
   };
 
@@ -444,7 +450,7 @@ const Admin = () => {
   const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
   const [productForm, setProductForm] = useState({
     name: "", price: 0, brand: "", category: "mens", description: "",
-    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
+    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true, badge: "",
   });
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
   const [reviewDialog, setReviewDialog] = useState(false);
@@ -509,7 +515,7 @@ const Admin = () => {
   // ── Product CRUD ──
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true });
+    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true, badge: "" });
     setProductDialog(true);
   };
 
@@ -519,6 +525,7 @@ const Admin = () => {
       name: p.name, price: p.price, brand: p.brand, category: p.category,
       description: p.description || "", images: p.images || [],
       rating: p.rating || 0, reviews_count: p.reviews_count || 0, in_stock: p.in_stock,
+      badge: p.badge || "",
     });
     setProductDialog(true);
   };
@@ -1104,6 +1111,20 @@ const Admin = () => {
                   <SelectContent>
                     <SelectItem value="yes">Yes</SelectItem>
                     <SelectItem value="no">No</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label className="mb-1.5 block">Badge</Label>
+                <Select value={productForm.badge || "none"} onValueChange={(v) => setProductForm({ ...productForm, badge: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="New">New</SelectItem>
+                    <SelectItem value="Bestseller">Bestseller</SelectItem>
+                    <SelectItem value="Sale">Sale</SelectItem>
+                    <SelectItem value="Limited">Limited</SelectItem>
+                    <SelectItem value="Pro">Pro</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -8,7 +8,7 @@ const mapDbProduct = (p: any): Product => ({
   price: Number(p.price),
   image: p.images?.[0] || "shoe-mens",
   category: p.category || "",
-  badge: p.in_stock === false ? "Sold Out" : undefined,
+  badge: p.badge || (p.in_stock === false ? "Sold Out" : undefined),
   rating: Number(p.rating) || 0,
   reviews: p.reviews_count || 0,
   brand: p.brand || "",
