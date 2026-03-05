@@ -604,9 +604,15 @@ const Admin = () => {
               </button>
             ))}
           </nav>
-          <Link to="/" className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-10">
+          <Link to="/" className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-6">
             <ArrowLeft className="h-4 w-4" /> Back to Store
           </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center gap-2 text-sm text-primary-foreground/50 hover:text-primary-foreground mt-2"
+          >
+            <ArrowLeft className="h-4 w-4" /> Sign Out
+          </button>
         </aside>
 
         {/* Main Content */}
