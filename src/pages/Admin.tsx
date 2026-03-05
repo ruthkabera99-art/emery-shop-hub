@@ -1112,6 +1112,20 @@ const Admin = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="mb-1.5 block">Badge</Label>
+                <Select value={productForm.badge || "none"} onValueChange={(v) => setProductForm({ ...productForm, badge: v === "none" ? "" : v })}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">None</SelectItem>
+                    <SelectItem value="New">New</SelectItem>
+                    <SelectItem value="Bestseller">Bestseller</SelectItem>
+                    <SelectItem value="Sale">Sale</SelectItem>
+                    <SelectItem value="Limited">Limited</SelectItem>
+                    <SelectItem value="Pro">Pro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
             <div>
               <Label className="mb-1.5 block">Description</Label>
