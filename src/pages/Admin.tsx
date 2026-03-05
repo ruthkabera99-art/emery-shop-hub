@@ -70,6 +70,7 @@ interface DbProduct {
   rating: number;
   reviews_count: number;
   in_stock: boolean;
+  badge: string | null;
   created_at: string;
   updated_at: string;
 }
