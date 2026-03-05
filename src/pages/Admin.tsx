@@ -523,6 +523,7 @@ const Admin = () => {
       name: p.name, price: p.price, brand: p.brand, category: p.category,
       description: p.description || "", images: p.images || [],
       rating: p.rating || 0, reviews_count: p.reviews_count || 0, in_stock: p.in_stock,
+      badge: p.badge || "",
     });
     setProductDialog(true);
   };
