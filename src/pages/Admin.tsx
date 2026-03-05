@@ -310,6 +310,7 @@ const useAdminProducts = () => {
       rating: p.rating,
       reviews_count: p.reviews,
       in_stock: true,
+      badge: p.badge || null,
     }));
     const { error } = await supabase.from("products").insert(dbProducts);
     if (error) {
