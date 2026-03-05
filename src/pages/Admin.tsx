@@ -436,8 +436,29 @@ const Admin = () => {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [replyInput, setReplyInput] = useState("");
+  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilter, setProductFilter] = useState("all");
+  const [productDialog, setProductDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
+  const [productForm, setProductForm] = useState({
+    name: "", price: 0, brand: "", category: "mens", description: "",
+    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
+  });
+  const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
+  const [reviewDialog, setReviewDialog] = useState(false);
+  const [reviewForm, setReviewForm] = useState({ customer_name: "", comment: "", rating: 5 });
+  const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
+
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  const visitorStats = useVisitorStats();
+  const chat = useAdminChat();
+  const adminProducts = useAdminProducts();
+  const adminReviews = useAdminReviews();
+  const adminSettings = useAdminSettings();
 
   // Auth check
   useEffect(() => {
@@ -458,12 +479,10 @@ const Admin = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Hooks
-  const visitorStats = useVisitorStats();
-  const chat = useAdminChat();
-  const adminProducts = useAdminProducts();
-  const adminReviews = useAdminReviews();
-  const adminSettings = useAdminSettings();
+  // Chat auto-scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chat.messages]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
