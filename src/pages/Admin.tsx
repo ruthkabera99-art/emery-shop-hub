@@ -300,6 +300,8 @@ const useAdminProducts = () => {
   };
 
   const seedProducts = async () => {
+    // Delete existing seeded products first, then re-insert with badges
+    await supabase.from("products").delete().neq("id", "00000000-0000-0000-0000-000000000000");
     const dbProducts = initialProducts.map((p) => ({
       name: p.name,
       price: p.price,
@@ -317,7 +319,7 @@ const useAdminProducts = () => {
       toast({ title: "Error seeding products", description: error.message, variant: "destructive" });
       return;
     }
-    toast({ title: "Products Seeded", description: `${dbProducts.length} products added to database.` });
+    toast({ title: "Products Seeded", description: `${dbProducts.length} products added with badges.` });
     await refresh();
   };
 
