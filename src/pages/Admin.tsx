@@ -448,7 +448,7 @@ const Admin = () => {
   const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
   const [productForm, setProductForm] = useState({
     name: "", price: 0, brand: "", category: "mens", description: "",
-    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
+    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true, badge: "",
   });
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
   const [reviewDialog, setReviewDialog] = useState(false);
