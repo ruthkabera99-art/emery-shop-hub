@@ -500,29 +500,6 @@ const Admin = () => {
 
   if (!user) return null;
 
-  const [replyInput, setReplyInput] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Product form state
-  const [productSearch, setProductSearch] = useState("");
-  const [productFilter, setProductFilter] = useState("all");
-  const [productDialog, setProductDialog] = useState(false);
-  const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
-  const [productForm, setProductForm] = useState({
-    name: "", price: 0, brand: "", category: "mens", description: "",
-    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true,
-  });
-  const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
-
-  // Review form state
-  const [reviewDialog, setReviewDialog] = useState(false);
-  const [reviewForm, setReviewForm] = useState({ customer_name: "", comment: "", rating: 5 });
-  const [deleteReviewId, setDeleteReviewId] = useState<string | null>(null);
-
-  // Chat auto-scroll
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat.messages]);
 
   const handleSendReply = async () => {
     await chat.sendReply(replyInput);
