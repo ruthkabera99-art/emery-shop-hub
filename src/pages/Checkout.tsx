@@ -40,7 +40,7 @@ const Checkout = () => {
         <h1 className="font-display text-2xl sm:text-4xl font-bold mb-4 sm:mb-8">Checkout</h1>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid lg:grid-cols-3 gap-10">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-10">
             {/* Form */}
             <div className="lg:col-span-2 space-y-8">
               {/* Contact */}
