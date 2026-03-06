@@ -18,8 +18,8 @@ const Navbar = () => {
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
-      <div className="container mx-auto flex items-center justify-between h-16 px-4 lg:px-8">
-        <Link to="/" className="font-display text-xl font-bold tracking-tight">
+      <div className="container mx-auto flex items-center justify-between h-14 sm:h-16 px-4 lg:px-8">
+        <Link to="/" className="font-display text-base sm:text-xl font-bold tracking-tight">
           EMERY <span className="text-gradient-warm">COLLECTION</span>
         </Link>
 

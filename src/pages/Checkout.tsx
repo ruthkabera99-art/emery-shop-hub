@@ -36,11 +36,11 @@ const Checkout = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="container mx-auto px-4 lg:px-8 py-12">
-        <h1 className="font-display text-4xl font-bold mb-8">Checkout</h1>
+      <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
+        <h1 className="font-display text-2xl sm:text-4xl font-bold mb-4 sm:mb-8">Checkout</h1>
 
         <form onSubmit={handleSubmit}>
-          <div className="grid lg:grid-cols-3 gap-10">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-10">
             {/* Form */}
             <div className="lg:col-span-2 space-y-8">
               {/* Contact */}

@@ -25,15 +25,15 @@ const Shop = () => {
   return (
     <div className="min-h-screen">
       <Navbar />
-      <main className="container mx-auto px-4 lg:px-8 py-12">
-        <div className="flex items-center justify-between mb-8">
-          <h1 className="font-display text-4xl font-bold">Shop All</h1>
-          <span className="text-sm text-muted-foreground">{filtered.length} products</span>
+      <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
+        <div className="flex items-center justify-between mb-4 sm:mb-8">
+          <h1 className="font-display text-2xl sm:text-4xl font-bold">Shop All</h1>
+          <span className="text-xs sm:text-sm text-muted-foreground">{filtered.length} products</span>
         </div>
-        <div className="flex flex-wrap gap-2 mb-10">
+        <div className="flex flex-wrap gap-1.5 sm:gap-2 mb-6 sm:mb-10 -mx-1 px-1 overflow-x-auto pb-2">
           <button
             onClick={() => handleCategoryChange("all")}
-            className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategory === "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
+            className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === "all" ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
           >
             All
           </button>
@@ -41,15 +41,15 @@ const Shop = () => {
             <button
               key={c.slug}
               onClick={() => handleCategoryChange(c.slug)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategory === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
             >
               {c.name}
             </button>
           ))}
         </div>
         {isLoading ? (
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {Array.from({ length: 8 }).map((_, i) => (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
+              {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="space-y-3">
                 <Skeleton className="aspect-square w-full rounded-lg" />
                 <Skeleton className="h-4 w-3/4" />
@@ -59,7 +59,7 @@ const Shop = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {paginated.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
             </div>
             {paginated.length < filtered.length && (
