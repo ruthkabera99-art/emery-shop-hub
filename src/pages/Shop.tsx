@@ -41,7 +41,7 @@ const Shop = () => {
             <button
               key={c.slug}
               onClick={() => handleCategoryChange(c.slug)}
-              className={`px-4 py-2 rounded-full text-sm font-medium transition-colors ${activeCategory === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
+              className={`px-3 sm:px-4 py-1.5 sm:py-2 rounded-full text-xs sm:text-sm font-medium transition-colors whitespace-nowrap ${activeCategory === c.slug ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-muted"}`}
             >
               {c.name}
             </button>
