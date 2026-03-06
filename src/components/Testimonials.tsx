@@ -32,11 +32,11 @@ const Testimonials = () => {
   const items = reviews && reviews.length > 0 ? reviews : staticTestimonials;
 
   return (
-    <section className="py-20 bg-secondary">
+    <section className="py-10 sm:py-20 bg-secondary">
       <div className="container mx-auto px-4 lg:px-8">
-        <div className="text-center mb-12">
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">What Our Customers Say</h2>
-          <p className="text-muted-foreground">Real reviews from real shoe lovers</p>
+        <div className="text-center mb-6 sm:mb-12">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">What Our Customers Say</h2>
+          <p className="text-muted-foreground text-sm sm:text-base">Real reviews from real shoe lovers</p>
         </div>
         {isLoading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
