@@ -36,10 +36,10 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
           )}
           <Button
             size="icon"
-            onClick={() => addToCart(product)}
-            className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity bg-card text-foreground hover:bg-accent hover:text-accent-foreground h-9 w-9 rounded-full shadow-elevated"
+            onClick={(e) => { e.stopPropagation(); addToCart(product); }}
+            className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-card text-foreground hover:bg-accent hover:text-accent-foreground h-8 w-8 sm:h-9 sm:w-9 rounded-full shadow-elevated"
           >
-            <ShoppingBag className="h-4 w-4" />
+            <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
           </Button>
         </div>
         <div className="pt-4 px-1">
