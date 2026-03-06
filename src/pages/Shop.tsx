@@ -59,7 +59,7 @@ const Shop = () => {
           </div>
         ) : (
           <>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 sm:gap-6">
               {paginated.map((p, i) => <ProductCard key={p.id} product={p} index={i} />)}
             </div>
             {paginated.length < filtered.length && (

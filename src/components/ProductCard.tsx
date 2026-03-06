@@ -28,7 +28,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
             <img src={getImage(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
           </div>
           {product.badge && (
-            <span className={`absolute top-3 left-3 px-3 py-1 text-xs font-semibold rounded-full ${
+            <span className={`absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${
               product.badge === "Sale" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"
             }`}>
               {product.badge}

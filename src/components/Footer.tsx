@@ -3,8 +3,8 @@ import { Mail, MapPin, Phone } from "lucide-react";
 
 const Footer = () => (
   <footer className="bg-primary text-primary-foreground">
-    <div className="container mx-auto px-4 lg:px-8 py-16">
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+    <div className="container mx-auto px-4 lg:px-8 py-10 sm:py-16">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 sm:gap-10">
         <div>
           <h3 className="font-display text-lg font-bold mb-4">EMERY <span className="text-gradient-warm">COLLECTION</span></h3>
           <p className="text-sm opacity-70 leading-relaxed">Premium footwear for every occasion. Crafted with care, designed for comfort.</p>

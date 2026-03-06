@@ -26,11 +26,11 @@ const Cart = () => {
             </Button>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-3 gap-10">
-            <div className="lg:col-span-2 space-y-4">
+          <div className="grid lg:grid-cols-3 gap-6 sm:gap-10">
+            <div className="lg:col-span-2 space-y-3 sm:space-y-4">
               {items.map((item) => (
-                <div key={item.id} className="flex gap-4 bg-card rounded-lg p-4 shadow-soft">
-                  <img src={getImage(item.image)} alt={item.name} className="w-24 h-24 object-cover rounded-md" />
+                <div key={item.id} className="flex gap-3 sm:gap-4 bg-card rounded-lg p-3 sm:p-4 shadow-soft">
+                  <img src={getImage(item.image)} alt={item.name} className="w-20 h-20 sm:w-24 sm:h-24 object-cover rounded-md" />
                   <div className="flex-1">
                     <h3 className="font-medium">{item.name}</h3>
                     <p className="text-sm text-muted-foreground mt-1">{formatPrice(item.price)}</p>

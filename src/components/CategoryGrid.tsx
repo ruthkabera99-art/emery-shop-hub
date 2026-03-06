@@ -4,13 +4,13 @@ import { categories } from "@/data/products";
 import { getImage } from "@/lib/images";
 
 const CategoryGrid = () => (
-  <section className="py-20">
+  <section className="py-10 sm:py-20">
     <div className="container mx-auto px-4 lg:px-8">
-      <div className="text-center mb-12">
-        <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Shop by Category</h2>
-        <p className="text-muted-foreground">Find the perfect pair for every occasion</p>
+      <div className="text-center mb-6 sm:mb-12">
+        <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">Shop by Category</h2>
+        <p className="text-muted-foreground text-sm sm:text-base">Find the perfect pair for every occasion</p>
       </div>
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4">
         {categories.map((cat, i) => (
           <motion.div
             key={cat.slug}

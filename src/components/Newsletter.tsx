@@ -16,7 +16,7 @@ const Newsletter = () => {
   };
 
   return (
-    <section className="py-20">
+    <section className="py-10 sm:py-20">
       <div className="container mx-auto px-4 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -24,9 +24,9 @@ const Newsletter = () => {
           viewport={{ once: true }}
           className="max-w-2xl mx-auto text-center"
         >
-          <h2 className="font-display text-3xl md:text-4xl font-bold mb-3">Stay in the Loop</h2>
-          <p className="text-muted-foreground mb-8">Subscribe for exclusive drops, early access, and 10% off your first order.</p>
-          <form onSubmit={handleSubmit} className="flex gap-3 max-w-md mx-auto">
+          <h2 className="font-display text-2xl sm:text-3xl md:text-4xl font-bold mb-2 sm:mb-3">Stay in the Loop</h2>
+          <p className="text-muted-foreground text-sm sm:text-base mb-6 sm:mb-8">Subscribe for exclusive drops, early access, and 10% off your first order.</p>
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-3 max-w-md mx-auto">
             <Input
               type="email"
               required
