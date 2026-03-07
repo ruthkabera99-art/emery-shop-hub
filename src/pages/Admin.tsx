@@ -26,9 +26,13 @@ import {
 import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
-  Plus, Search, X, Save, Check,
+  Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
+import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
+import FooterEditor from "@/components/admin/FooterEditor";
+import MenuEditor from "@/components/admin/MenuEditor";
+import HomepageEditor from "@/components/admin/HomepageEditor";
 
 // ── Types ──
 interface Visitor {
@@ -99,6 +103,10 @@ const tabs = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "products", label: "Products", icon: Package },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "theme", label: "Theme", icon: Palette },
+  { id: "footer", label: "Footer", icon: FileText },
+  { id: "menu", label: "Menu", icon: MenuIcon },
+  { id: "homepage", label: "Homepage", icon: Layout },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -1025,6 +1033,18 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+          {/* ── THEME ── */}
+          {activeTab === "theme" && <ThemeCustomizer />}
+
+          {/* ── FOOTER ── */}
+          {activeTab === "footer" && <FooterEditor />}
+
+          {/* ── MENU ── */}
+          {activeTab === "menu" && <MenuEditor />}
+
+          {/* ── HOMEPAGE ── */}
+          {activeTab === "homepage" && <HomepageEditor />}
 
           {/* ── SETTINGS ── */}
           {activeTab === "settings" && (
