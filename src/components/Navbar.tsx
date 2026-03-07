@@ -3,18 +3,22 @@ import { Link } from "react-router-dom";
 import { ShoppingBag, Menu, X, Search, User } from "lucide-react";
 import { useCart } from "@/context/CartContext";
 import { motion, AnimatePresence } from "framer-motion";
-
-const navLinks = [
-  { name: "Home", to: "/" },
-  { name: "Shop", to: "/shop" },
-  { name: "Categories", to: "/shop" },
-  { name: "About Us", to: "/about" },
-  { name: "Contact", to: "/contact" },
-];
+import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const { menu, loaded } = useSiteSettings();
+
+  const navLinks = loaded
+    ? menu.items.filter((i) => i.visible).map((i) => ({ name: i.label, to: i.url }))
+    : [
+        { name: "Home", to: "/" },
+        { name: "Shop", to: "/shop" },
+        { name: "Categories", to: "/shop" },
+        { name: "About Us", to: "/about" },
+        { name: "Contact", to: "/contact" },
+      ];
 
   return (
     <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
