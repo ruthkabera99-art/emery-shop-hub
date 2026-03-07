@@ -103,6 +103,10 @@ const tabs = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "products", label: "Products", icon: Package },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "theme", label: "Theme", icon: Palette },
+  { id: "footer", label: "Footer", icon: FileText },
+  { id: "menu", label: "Menu", icon: MenuIcon },
+  { id: "homepage", label: "Homepage", icon: Layout },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
