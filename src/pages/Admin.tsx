@@ -1034,6 +1034,18 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── THEME ── */}
+          {activeTab === "theme" && <ThemeCustomizer />}
+
+          {/* ── FOOTER ── */}
+          {activeTab === "footer" && <FooterEditor />}
+
+          {/* ── MENU ── */}
+          {activeTab === "menu" && <MenuEditor />}
+
+          {/* ── HOMEPAGE ── */}
+          {activeTab === "homepage" && <HomepageEditor />}
+
           {/* ── SETTINGS ── */}
           {activeTab === "settings" && (
             <div>
