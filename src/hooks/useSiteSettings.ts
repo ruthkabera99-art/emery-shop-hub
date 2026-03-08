@@ -119,6 +119,17 @@ export function useSiteSettings() {
   const [homepage, setHomepage] = useState<HomepageConfig>(defaultHomepageConfig);
   const [loaded, setLoaded] = useState(false);
 
+  const handleRealtimeChange = useCallback((payload: { new: { key: string; value: string } }) => {
+    try {
+      const { key, value } = payload.new;
+      const parsed = JSON.parse(value);
+      if (key === "footer_config") setFooter(parsed);
+      else if (key === "menu_config") setMenu(parsed);
+      else if (key === "homepage_config") setHomepage(parsed);
+      else if (key === "theme_config") setTheme(parsed);
+    } catch { /* ignore */ }
+  }, []);
+
   useEffect(() => {
     Promise.all([
       loadSetting("theme_config", defaultThemeConfig),
@@ -132,7 +143,18 @@ export function useSiteSettings() {
       setHomepage(h);
       setLoaded(true);
     });
-  }, []);
+
+    const channel = supabase
+      .channel("site-settings-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "store_settings" },
+        handleRealtimeChange as any
+      )
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [handleRealtimeChange]);
 
   return { theme, footer, menu, homepage, loaded };
 }
