@@ -8,11 +8,19 @@ function applyTheme(config: ThemeConfig) {
   root.style.setProperty("--foreground", config.primaryColor);
   root.style.setProperty("--card-foreground", config.primaryColor);
   root.style.setProperty("--popover-foreground", config.primaryColor);
+  root.style.setProperty("--secondary-foreground", config.primaryColor);
   root.style.setProperty("--primary-foreground", config.backgroundColor);
   root.style.setProperty("--background", config.backgroundColor);
+  root.style.setProperty("--card", config.backgroundColor);
+  root.style.setProperty("--popover", config.backgroundColor);
   root.style.setProperty("--accent", config.accentColor);
   root.style.setProperty("--ring", config.accentColor);
   root.style.setProperty("--radius", config.borderRadius);
+  
+  // Also update sidebar to match primary
+  root.style.setProperty("--sidebar-background", config.primaryColor);
+  root.style.setProperty("--sidebar-foreground", config.backgroundColor);
+  
   root.style.fontFamily = `'${config.fontBody}', sans-serif`;
 
   // Update heading font via a style tag
