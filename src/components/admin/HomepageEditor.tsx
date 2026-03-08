@@ -1,7 +1,24 @@
 import { useAdminHomepage, defaultHomepageConfig, HomepageSection } from "@/hooks/useSiteSettings";
 import { Button } from "@/components/ui/button";
-import { Save, RefreshCw, Eye, EyeOff, ArrowUp, ArrowDown, Layout } from "lucide-react";
+import { Save, RefreshCw, Eye, EyeOff, GripVertical, Layout } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 
 const SECTION_ICONS: Record<string, string> = {
   hero: "🖼️",
@@ -13,13 +30,57 @@ const SECTION_ICONS: Record<string, string> = {
   newsletter: "📧",
 };
 
+const SortableSectionItem = ({
+  section,
+  onToggle,
+}: {
+  section: HomepageSection;
+  onToggle: (id: string) => void;
+}) => {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: section.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 50 : undefined,
+    opacity: isDragging ? 0.85 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
+        section.visible ? "border-border bg-background" : "border-border/50 bg-muted/30 opacity-50"
+      } ${isDragging ? "shadow-elevated" : ""}`}
+    >
+      <button {...attributes} {...listeners} className="cursor-grab active:cursor-grabbing touch-none">
+        <GripVertical className="h-4 w-4 text-muted-foreground" />
+      </button>
+      <span className="text-xl">{SECTION_ICONS[section.id] || "📄"}</span>
+      <div className="flex-1">
+        <p className="text-sm font-medium">{section.label}</p>
+        <p className="text-xs text-muted-foreground">{section.visible ? "Visible on homepage" : "Hidden"}</p>
+      </div>
+      <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => onToggle(section.id)}>
+        {section.visible ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4" />}
+      </Button>
+    </div>
+  );
+};
+
 const HomepageEditor = () => {
   const { config, setConfig, save } = useAdminHomepage();
   const { toast } = useToast();
 
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+  );
+
   const handleSave = async () => {
     await save(config);
-    toast({ title: "Homepage Saved", description: "Homepage layout saved. Refresh the store to see changes." });
+    toast({ title: "Homepage Saved", description: "Homepage layout saved. Changes apply in real-time." });
   };
 
   const handleReset = () => {
@@ -34,17 +95,14 @@ const HomepageEditor = () => {
     setConfig({ ...config, sections });
   };
 
-  const moveSection = (index: number, direction: -1 | 1) => {
-    const sections = [...config.sections];
-    const newIndex = index + direction;
-    if (newIndex < 0 || newIndex >= sections.length) return;
-    // Swap orders
-    const tempOrder = sections[index].order;
-    sections[index] = { ...sections[index], order: sections[newIndex].order };
-    sections[newIndex] = { ...sections[newIndex], order: tempOrder };
-    // Swap positions
-    [sections[index], sections[newIndex]] = [sections[newIndex], sections[index]];
-    setConfig({ ...config, sections });
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = config.sections.findIndex((s) => s.id === active.id);
+    const newIndex = config.sections.findIndex((s) => s.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newSections = arrayMove(config.sections, oldIndex, newIndex).map((s, i) => ({ ...s, order: i }));
+    setConfig({ ...config, sections: newSections });
   };
 
   const visibleCount = config.sections.filter((s) => s.visible).length;
@@ -53,7 +111,7 @@ const HomepageEditor = () => {
   return (
     <div>
       <h1 className="font-display text-3xl font-bold mb-2">Homepage Layout</h1>
-      <p className="text-sm text-muted-foreground mb-8">Toggle and reorder homepage sections. Drag sections to rearrange the layout.</p>
+      <p className="text-sm text-muted-foreground mb-8">Drag sections to reorder and toggle their visibility on the homepage.</p>
 
       <div className="bg-card rounded-lg p-6 shadow-soft mb-6 max-w-2xl">
         <div className="flex items-center justify-between mb-4">
@@ -61,35 +119,15 @@ const HomepageEditor = () => {
             <Layout className="h-5 w-5 text-accent" /> Sections ({visibleCount}/{totalCount} visible)
           </h3>
         </div>
-        <div className="space-y-2">
-          {config.sections.map((section, i) => (
-            <div
-              key={section.id}
-              className={`flex items-center gap-3 p-4 rounded-lg border transition-all ${
-                section.visible
-                  ? "border-border bg-background"
-                  : "border-border/50 bg-muted/30 opacity-50"
-              }`}
-            >
-              <span className="text-xl">{SECTION_ICONS[section.id] || "📄"}</span>
-              <div className="flex-1">
-                <p className="text-sm font-medium">{section.label}</p>
-                <p className="text-xs text-muted-foreground">{section.visible ? "Visible on homepage" : "Hidden"}</p>
-              </div>
-              <div className="flex gap-1 shrink-0">
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => moveSection(i, -1)} disabled={i === 0}>
-                  <ArrowUp className="h-3 w-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => moveSection(i, 1)} disabled={i === config.sections.length - 1}>
-                  <ArrowDown className="h-3 w-3" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => toggleSection(section.id)}>
-                  {section.visible ? <Eye className="h-4 w-4 text-green-600" /> : <EyeOff className="h-4 w-4" />}
-                </Button>
-              </div>
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={config.sections.map((s) => s.id)} strategy={verticalListSortingStrategy}>
+            <div className="space-y-2">
+              {config.sections.map((section) => (
+                <SortableSectionItem key={section.id} section={section} onToggle={toggleSection} />
+              ))}
             </div>
-          ))}
-        </div>
+          </SortableContext>
+        </DndContext>
       </div>
 
       {/* Layout Preview */}
