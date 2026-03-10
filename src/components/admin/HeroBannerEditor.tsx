@@ -21,8 +21,8 @@ const HeroBannerEditor = () => {
     toast({ title: "Hero Reset", description: "Hero banner reset to defaults. Click Save to apply." });
   };
 
-  const handleImageUploaded = (url: string) => {
-    setConfig({ ...config, imageUrl: url });
+  const handleImageChange = (urls: string[]) => {
+    setConfig({ ...config, imageUrl: urls[0] || "" });
   };
 
   return (
