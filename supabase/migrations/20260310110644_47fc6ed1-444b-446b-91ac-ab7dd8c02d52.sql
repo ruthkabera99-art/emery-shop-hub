@@ -1,0 +1,1 @@
+UPDATE public.store_settings SET value = '{"primaryColor":"30 10% 15%","accentColor":"38 60% 55%","backgroundColor":"36 33% 97%","fontHeading":"Playfair Display","fontBody":"DM Sans","borderRadius":"0.5rem"}', updated_at = now() WHERE key = 'theme_config';
