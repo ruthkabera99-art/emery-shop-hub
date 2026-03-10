@@ -26,13 +26,14 @@ import {
 import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
-  Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout,
+  Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
 import FooterEditor from "@/components/admin/FooterEditor";
 import MenuEditor from "@/components/admin/MenuEditor";
 import HomepageEditor from "@/components/admin/HomepageEditor";
+import HeroBannerEditor from "@/components/admin/HeroBannerEditor";
 
 // ── Types ──
 interface Visitor {
@@ -103,6 +104,7 @@ const tabs = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "products", label: "Products", icon: Package },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
   { id: "menu", label: "Menu", icon: MenuIcon },
@@ -1033,6 +1035,9 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+          {/* ── HERO BANNER ── */}
+          {activeTab === "hero" && <HeroBannerEditor />}
 
           {/* ── THEME ── */}
           {activeTab === "theme" && <ThemeCustomizer />}

@@ -77,6 +77,26 @@ export const defaultMenuConfig: MenuConfig = {
   ],
 };
 
+export interface HeroConfig {
+  subtitle: string;
+  title: string;
+  titleAccent: string;
+  description: string;
+  primaryCta: { label: string; url: string };
+  secondaryCta: { label: string; url: string };
+  imageUrl: string;
+}
+
+export const defaultHeroConfig: HeroConfig = {
+  subtitle: "New Collection 2026",
+  title: "Step Into",
+  titleAccent: "Elegance",
+  description: "Discover our curated collection of premium footwear, crafted for those who value style and comfort.",
+  primaryCta: { label: "Shop Now", url: "/shop" },
+  secondaryCta: { label: "View Categories", url: "/shop" },
+  imageUrl: "",
+};
+
 export const defaultHomepageConfig: HomepageConfig = {
   sections: [
     { id: "hero", label: "Hero Banner", visible: true, order: 0 },
@@ -229,6 +249,25 @@ export function useAdminHomepage() {
 
   const save = async (c: HomepageConfig) => {
     await saveSetting("homepage_config", c);
+    setConfig(c);
+  };
+
+  return { config, setConfig, loading, save };
+}
+
+export function useAdminHero() {
+  const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadSetting("hero_config", defaultHeroConfig).then((c) => {
+      setConfig(c);
+      setLoading(false);
+    });
+  }, []);
+
+  const save = async (c: HeroConfig) => {
+    await saveSetting("hero_config", c);
     setConfig(c);
   };
 
