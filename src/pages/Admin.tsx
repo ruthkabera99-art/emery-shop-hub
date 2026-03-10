@@ -1036,6 +1036,9 @@ const Admin = () => {
             </div>
           )}
 
+          {/* ── HERO BANNER ── */}
+          {activeTab === "hero" && <HeroBannerEditor />}
+
           {/* ── THEME ── */}
           {activeTab === "theme" && <ThemeCustomizer />}
 
