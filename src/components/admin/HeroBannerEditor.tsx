@@ -85,7 +85,7 @@ const HeroBannerEditor = () => {
               <img src={config.imageUrl} alt="Hero preview" className="w-full h-full object-cover" />
             </div>
           )}
-          <ImageUploader onImageUploaded={handleImageUploaded} />
+          <ImageUploader images={config.imageUrl ? [config.imageUrl] : []} onImagesChange={handleImageChange} maxImages={1} />
           <p className="text-xs text-muted-foreground">
             Leave empty to use the default hero image. Recommended size: 1920×1080px.
           </p>
