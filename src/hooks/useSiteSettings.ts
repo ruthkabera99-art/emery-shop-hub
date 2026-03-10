@@ -254,3 +254,22 @@ export function useAdminHomepage() {
 
   return { config, setConfig, loading, save };
 }
+
+export function useAdminHero() {
+  const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadSetting("hero_config", defaultHeroConfig).then((c) => {
+      setConfig(c);
+      setLoading(false);
+    });
+  }, []);
+
+  const save = async (c: HeroConfig) => {
+    await saveSetting("hero_config", c);
+    setConfig(c);
+  };
+
+  return { config, setConfig, loading, save };
+}
