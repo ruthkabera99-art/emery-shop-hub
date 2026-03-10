@@ -26,13 +26,14 @@ import {
 import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
-  Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout,
+  Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
 import FooterEditor from "@/components/admin/FooterEditor";
 import MenuEditor from "@/components/admin/MenuEditor";
 import HomepageEditor from "@/components/admin/HomepageEditor";
+import HeroBannerEditor from "@/components/admin/HeroBannerEditor";
 
 // ── Types ──
 interface Visitor {
