@@ -104,6 +104,7 @@ const tabs = [
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "products", label: "Products", icon: Package },
   { id: "reviews", label: "Reviews", icon: Star },
+  { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
   { id: "menu", label: "Menu", icon: MenuIcon },
