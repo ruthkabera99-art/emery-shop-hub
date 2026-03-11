@@ -13,6 +13,7 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import Admin from "./pages/Admin";
 import AdminLogin from "./pages/AdminLogin";
+import ProductDetail from "./pages/ProductDetail";
 import NotFound from "./pages/NotFound";
 import ThemeProvider from "./components/ThemeProvider";
 
