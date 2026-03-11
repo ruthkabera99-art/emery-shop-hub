@@ -9,23 +9,19 @@ import { Button } from "@/components/ui/button";
 
 const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
   const { addToCart } = useCart();
-  const [modalOpen, setModalOpen] = useState(false);
-
-  const productImages = [product.image];
 
   return (
-    <>
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        whileInView={{ opacity: 1, y: 0 }}
-        viewport={{ once: true }}
-        transition={{ delay: index * 0.1 }}
-        className="group"
-      >
-        <div className="relative rounded-lg overflow-hidden bg-card shadow-soft hover:shadow-elevated transition-all duration-300">
-          <div className="aspect-square overflow-hidden cursor-pointer" onClick={() => setModalOpen(true)}>
-            <img src={getImage(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
-          </div>
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      transition={{ delay: index * 0.1 }}
+      className="group"
+    >
+      <div className="relative rounded-lg overflow-hidden bg-card shadow-soft hover:shadow-elevated transition-all duration-300">
+        <Link to={`/product/${product.id}`} className="block aspect-square overflow-hidden cursor-pointer">
+          <img src={getImage(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+        </Link>
           {product.badge && (
             <span className={`absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${
               product.badge === "Sale" ? "bg-destructive text-destructive-foreground" : "bg-accent text-accent-foreground"
