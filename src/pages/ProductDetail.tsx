@@ -135,7 +135,7 @@ const ProductDetail = () => {
                     onClick={() => setCurrentImageIndex(i)}
                     className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === currentImageIndex ? "border-accent" : "border-transparent opacity-60 hover:opacity-100"}`}
                   >
-                    <img src={getImage(img)} alt="" className="w-full h-full object-cover" />
+                    <OptimizedImage src={getImage(img)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

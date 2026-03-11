@@ -21,7 +21,7 @@ const CategoryGrid = () => (
             transition={{ delay: i * 0.1 }}
           >
             <Link to="/shop" className="group block relative rounded-lg overflow-hidden aspect-square shadow-soft hover:shadow-elevated transition-shadow">
-              <img src={getImage(cat.image)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+              <OptimizedImage src={getImage(cat.image)} alt={cat.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-primary/40 group-hover:bg-primary/50 transition-colors" />
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-primary-foreground font-display text-lg font-bold">{cat.name}</span>
