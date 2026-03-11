@@ -3,6 +3,7 @@ import Footer from "@/components/Footer";
 import { useCart } from "@/context/CartContext";
 import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
+import OptimizedImage from "@/components/OptimizedImage";
 import { Button } from "@/components/ui/button";
 import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react";
 import { Link } from "react-router-dom";
