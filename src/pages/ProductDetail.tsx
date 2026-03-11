@@ -102,10 +102,11 @@ const ProductDetail = () => {
           >
             <div className="relative rounded-xl overflow-hidden bg-card shadow-soft group cursor-pointer" onClick={() => setModalOpen(true)}>
               <div className="aspect-square">
-                <img
+                <OptimizedImage
                   src={getImage(images[currentImageIndex])}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  eager
                 />
               </div>
               {product.badge && (
