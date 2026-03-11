@@ -1,12 +1,11 @@
-import { useState } from "react";
 import { Star, ShoppingBag } from "lucide-react";
 import { motion } from "framer-motion";
+import { Link } from "react-router-dom";
 import { Product } from "@/data/products";
 import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
-import ImageModal from "@/components/ImageModal";
 
 const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
   const { addToCart } = useCart();
