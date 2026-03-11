@@ -6,6 +6,7 @@ import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
   const { addToCart } = useCart();
