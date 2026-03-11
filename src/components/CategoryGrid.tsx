@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { categories } from "@/data/products";
 import { getImage } from "@/lib/images";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const CategoryGrid = () => (
   <section className="py-10 sm:py-20">
