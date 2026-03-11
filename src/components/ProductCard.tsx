@@ -50,16 +50,8 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
               <span className="text-xs sm:text-sm text-muted-foreground line-through">{formatPrice(product.originalPrice)}</span>
             )}
           </div>
-        </div>
-      </motion.div>
-
-      <ImageModal
-        isOpen={modalOpen}
-        onClose={() => setModalOpen(false)}
-        images={productImages}
-        productName={product.name}
-      />
-    </>
+      </div>
+    </motion.div>
   );
 };
 
