@@ -13,6 +13,7 @@ import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { products as fallbackProducts } from "@/data/products";
 import ImageModal from "@/components/ImageModal";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -101,10 +102,11 @@ const ProductDetail = () => {
           >
             <div className="relative rounded-xl overflow-hidden bg-card shadow-soft group cursor-pointer" onClick={() => setModalOpen(true)}>
               <div className="aspect-square">
-                <img
+                <OptimizedImage
                   src={getImage(images[currentImageIndex])}
                   alt={product.name}
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  eager
                 />
               </div>
               {product.badge && (
@@ -133,7 +135,7 @@ const ProductDetail = () => {
                     onClick={() => setCurrentImageIndex(i)}
                     className={`w-16 h-16 rounded-lg overflow-hidden border-2 transition-colors ${i === currentImageIndex ? "border-accent" : "border-transparent opacity-60 hover:opacity-100"}`}
                   >
-                    <img src={getImage(img)} alt="" className="w-full h-full object-cover" />
+                    <OptimizedImage src={getImage(img)} alt="" className="w-full h-full object-cover" />
                   </button>
                 ))}
               </div>

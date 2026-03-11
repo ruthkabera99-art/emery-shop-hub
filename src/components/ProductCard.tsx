@@ -6,6 +6,7 @@ import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/context/CartContext";
 import { Button } from "@/components/ui/button";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
   const { addToCart } = useCart();
@@ -20,7 +21,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
     >
       <div className="relative rounded-lg overflow-hidden bg-card shadow-soft hover:shadow-elevated transition-all duration-300">
         <Link to={`/product/${product.id}`} className="block aspect-square overflow-hidden cursor-pointer">
-          <img src={getImage(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+          <OptimizedImage src={getImage(product.image)} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
         </Link>
           {product.badge && (
             <span className={`absolute top-2 left-2 sm:top-3 sm:left-3 px-2 sm:px-3 py-0.5 sm:py-1 text-[10px] sm:text-xs font-semibold rounded-full ${

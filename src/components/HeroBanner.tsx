@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { getImage } from "@/lib/images";
+import OptimizedImage from "@/components/OptimizedImage";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { HeroConfig, defaultHeroConfig } from "@/hooks/useSiteSettings";
@@ -44,7 +45,7 @@ const HeroBanner = () => {
 
   return (
     <section className="relative h-[70vh] sm:h-[80vh] md:h-[85vh] min-h-[400px] overflow-hidden">
-      <img src={heroImage} alt="Premium leather shoes" className="absolute inset-0 w-full h-full object-cover" loading="eager" />
+      <OptimizedImage src={heroImage} alt="Premium leather shoes" className="absolute inset-0 w-full h-full object-cover" eager />
       <div className="absolute inset-0 bg-hero-overlay" />
       <div className="relative container mx-auto px-4 lg:px-8 h-full flex items-end pb-12 sm:items-center sm:pb-0">
         <motion.div
