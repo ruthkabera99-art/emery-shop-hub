@@ -13,6 +13,7 @@ import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { products as fallbackProducts } from "@/data/products";
 import ImageModal from "@/components/ImageModal";
+import OptimizedImage from "@/components/OptimizedImage";
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
