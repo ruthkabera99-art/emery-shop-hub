@@ -10,6 +10,9 @@ export interface Product {
   reviews: number;
   sizes?: number[];
   brand: string;
+  inStock?: boolean;
+  stockQuantity?: number;
+  description?: string;
 }
 
 export const categories = [
@@ -145,22 +148,15 @@ export const products: Product[] = [
   { id: "109", name: "Nike Presto React", price: 79, originalPrice: 139, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 289, sizes: ms, brand: "Nike" },
   { id: "110", name: "Nike Dunk High Burgundy", price: 89, originalPrice: 139, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.6, reviews: 167, sizes: ms, brand: "Nike" },
   { id: "111", name: "Adidas NMD R1 Olive", price: 89, originalPrice: 139, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 234, sizes: ms, brand: "Adidas" },
-  { id: "112", name: "Puma Suede Vintage Grey", price: 59, originalPrice: 89, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.4, reviews: 178, sizes: ms, brand: "Puma" },
-  { id: "113", name: "Adidas Yeezy 350 Zebra", price: 179, originalPrice: 249, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.8, reviews: 345, sizes: ms, brand: "Adidas" },
-  { id: "114", name: "New Balance 574 Legacy", price: 69, originalPrice: 99, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 267, sizes: ms, brand: "New Balance" },
-  { id: "115", name: "Nike Air Max 270 React", price: 109, originalPrice: 159, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.6, reviews: 189, sizes: ms, brand: "Nike" },
-  { id: "116", name: "Jordan 4 Cool Grey", price: 169, originalPrice: 229, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.8, reviews: 145, sizes: ms, brand: "Jordan" },
-  { id: "117", name: "Adidas Superstar Vintage", price: 69, originalPrice: 99, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 312, sizes: ms, brand: "Adidas" },
-  { id: "118", name: "Puma RS-X3 Puzzle", price: 69, originalPrice: 119, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.4, reviews: 156, sizes: ms, brand: "Puma" },
-  { id: "119", name: "Nike Blazer Low Suede", price: 59, originalPrice: 99, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 234, sizes: ms, brand: "Nike" },
-  { id: "120", name: "New Balance 990v6 Grey", price: 149, originalPrice: 199, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.9, reviews: 189, sizes: ms, brand: "New Balance" },
+  { id: "112", name: "Puma Suede Classic Burgundy", price: 59, originalPrice: 89, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.4, reviews: 178, sizes: ms, brand: "Puma" },
+  { id: "113", name: "Nike Air Max 270 React", price: 109, originalPrice: 169, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.7, reviews: 234, sizes: ms, brand: "Nike" },
+  { id: "114", name: "Jordan 1 Mid Smoke Grey", price: 99, originalPrice: 139, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.6, reviews: 345, sizes: ms, brand: "Jordan" },
+  { id: "115", name: "Adidas Gazelle Grey", price: 69, originalPrice: 109, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 289, sizes: ws, brand: "Adidas" },
+  { id: "116", name: "Nike Dunk Low Team Green", price: 79, originalPrice: 119, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.6, reviews: 156, sizes: ms, brand: "Nike" },
+  { id: "117", name: "New Balance 574 Legacy", price: 69, originalPrice: 109, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.5, reviews: 234, sizes: ms, brand: "New Balance" },
+  { id: "118", name: "Puma RS-X3 Puzzle", price: 79, originalPrice: 119, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.4, reviews: 167, sizes: ms, brand: "Puma" },
+  { id: "119", name: "Nike Huarache Run Ultra", price: 89, originalPrice: 139, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.6, reviews: 198, sizes: ms, brand: "Nike" },
+  { id: "120", name: "Jordan 1 Low Pine Green", price: 89, originalPrice: 129, image: "shoe-sale", category: "sale", badge: "Sale", rating: 4.7, reviews: 145, sizes: ms, brand: "Jordan" },
 ];
 
-export const testimonials = [
-  { name: "Tyler J.", text: "The Jordan 1s are absolute fire! Quality is insane and they came double-boxed. My go-to sneaker store now.", rating: 5, location: "Paris, FR" },
-  { name: "Marcus W.", text: "Copped the Jordan 4 Breds and they're even better in person. Fast shipping too, had them in 3 days.", rating: 5, location: "Berlin, DE" },
-  { name: "Sophia L.", text: "Got the Air Force 1s for my collection. Perfect condition, authentic, and the price was right. 10/10!", rating: 5, location: "Amsterdam, NL" },
-  { name: "Devon R.", text: "The Air Max Volts are insane for running and they look fire too. Best sports kicks I've owned.", rating: 5, location: "Milan, IT" },
-  { name: "Aisha K.", text: "Adidas Sambas are chef's kiss. Super comfy and they go with everything. Already ordered a second pair!", rating: 5, location: "London, UK" },
-  { name: "Liam P.", text: "Got Puma Suedes for my son and he won't take them off. Great quality kids shoes at a fair price.", rating: 5, location: "Dublin, IE" },
-];
+export const brands = [...new Set(products.map((p) => p.brand))].sort();
