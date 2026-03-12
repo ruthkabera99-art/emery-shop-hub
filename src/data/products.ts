@@ -160,3 +160,14 @@ export const products: Product[] = [
 ];
 
 export const brands = [...new Set(products.map((p) => p.brand))].sort();
+
+export const testimonials = [
+  { name: "Sarah M.", text: "Best sneakers I've ever bought! The quality is incredible and they fit perfectly.", rating: 5, location: "New York, US" },
+  { name: "James L.", text: "Fast shipping and the shoes look even better in person. Will definitely buy again!", rating: 5, location: "London, UK" },
+  { name: "Emma R.", text: "Love the variety of brands available. Found exactly what I was looking for.", rating: 4, location: "Paris, FR" },
+  { name: "David K.", text: "Great customer service and the return process was seamless. Highly recommend!", rating: 5, location: "Berlin, DE" },
+  { name: "Lisa T.", text: "My kids love their new shoes! Great prices for premium brands.", rating: 5, location: "Toronto, CA" },
+  { name: "Marco P.", text: "Authentic products, great packaging. This is my go-to shoe store now.", rating: 5, location: "Milan, IT" },
+  { name: "Anna S.", text: "The sale section has amazing deals. Got two pairs for the price of one!", rating: 4, location: "Stockholm, SE" },
+  { name: "Chris W.", text: "Incredibly comfortable running shoes. Perfect for my daily training.", rating: 5, location: "Sydney, AU" },
+];
