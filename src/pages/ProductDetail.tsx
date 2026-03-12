@@ -254,6 +254,10 @@ const ProductDetail = () => {
           </motion.div>
         </div>
 
+
+        {/* Product Reviews */}
+        <ProductReviews productId={product.id} />
+
         {/* Related Products */}
         {relatedProducts.length > 0 && (
           <section className="mt-16 sm:mt-24">

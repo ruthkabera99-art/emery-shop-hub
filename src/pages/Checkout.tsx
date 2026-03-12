@@ -8,15 +8,20 @@ import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Truck, ShieldCheck } from "lucide-react";
+import { CreditCard, Truck, ShieldCheck, Tag, X, Check } from "lucide-react";
+import { useCoupon } from "@/hooks/useCoupon";
 
 const Checkout = () => {
   const { items, totalPrice, totalItems, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
+  const [couponCode, setCouponCode] = useState("");
+  const { coupon, loading: couponLoading, applyCoupon, removeCoupon, calculateDiscount } = useCoupon();
+
+  const discount = calculateDiscount(totalPrice);
   const shipping = totalPrice >= 100 ? 0 : 9.99;
-  const total = totalPrice + shipping;
+  const total = totalPrice - discount + shipping;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,8 +104,55 @@ const Checkout = () => {
                     </div>
                   ))}
                 </div>
+
+                {/* Coupon Code */}
+                <div className="border-t border-border pt-4 mb-4">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-1">
+                    <Tag className="h-3 w-3" /> Promo Code
+                  </p>
+                  {coupon?.valid ? (
+                    <div className="flex items-center justify-between bg-accent/10 rounded-lg px-3 py-2">
+                      <div className="flex items-center gap-2">
+                        <Check className="h-4 w-4 text-green-600" />
+                        <span className="text-sm font-medium">{coupon.code}</span>
+                        <span className="text-xs text-green-600">{coupon.message}</span>
+                      </div>
+                      <button type="button" onClick={removeCoupon}>
+                        <X className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex gap-2">
+                      <Input
+                        value={couponCode}
+                        onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        placeholder="Enter code"
+                        className="text-sm uppercase"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        disabled={!couponCode.trim() || couponLoading}
+                        onClick={() => applyCoupon(couponCode, totalPrice)}
+                        className="shrink-0"
+                      >
+                        {couponLoading ? "..." : "Apply"}
+                      </Button>
+                    </div>
+                  )}
+                  {coupon && !coupon.valid && (
+                    <p className="text-xs text-destructive mt-1">{coupon.message}</p>
+                  )}
+                </div>
+
                 <div className="border-t border-border pt-4 space-y-2 text-sm">
                   <div className="flex justify-between"><span className="text-muted-foreground">Subtotal ({totalItems} items)</span><span>{formatPrice(totalPrice)}</span></div>
+                  {discount > 0 && (
+                    <div className="flex justify-between text-green-600">
+                      <span>Discount</span><span>-{formatPrice(discount)}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : formatPrice(shipping)}</span></div>
                   <div className="border-t border-border pt-2 flex justify-between font-bold text-lg">
                     <span>Total</span><span>{formatPrice(total)}</span>
