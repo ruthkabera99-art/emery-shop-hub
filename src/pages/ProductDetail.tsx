@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
+import { Star, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, ArrowLeft, Truck, Shield, RotateCcw, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
