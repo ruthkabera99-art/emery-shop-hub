@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Star, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, ArrowLeft, Truck, Shield, RotateCcw } from "lucide-react";
+import { Star, ShoppingBag, Minus, Plus, ChevronLeft, ChevronRight, ArrowLeft, Truck, Shield, RotateCcw, AlertTriangle } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/currency";
 import { products as fallbackProducts } from "@/data/products";
 import ImageModal from "@/components/ImageModal";
 import OptimizedImage from "@/components/OptimizedImage";
-
+import ProductReviews from "@/components/ProductReviews";
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: dbProducts = [], isLoading } = useProducts();
@@ -68,7 +68,11 @@ const ProductDetail = () => {
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
+  const isOutOfStock = product.inStock === false;
+  const isLowStock = !isOutOfStock && product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
+
   const handleAddToCart = () => {
+    if (isOutOfStock) return;
     for (let i = 0; i < quantity; i++) {
       addToCart(product);
     }
@@ -197,20 +201,38 @@ const ProductDetail = () => {
               </div>
             )}
 
+            {/* Stock Status */}
+            {isOutOfStock && (
+              <div className="mt-4 flex items-center gap-2 text-destructive font-semibold text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                Out of Stock
+              </div>
+            )}
+            {isLowStock && (
+              <div className="mt-4 flex items-center gap-2 text-orange-500 font-semibold text-sm">
+                <AlertTriangle className="h-4 w-4" />
+                Only {product.stockQuantity} left in stock!
+              </div>
+            )}
+
             {/* Quantity + Add to Cart */}
             <div className="mt-6 flex flex-col sm:flex-row gap-3">
               <div className="flex items-center border border-border rounded-lg bg-card">
-                <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="p-3 hover:bg-secondary transition-colors rounded-l-lg">
+                <button onClick={() => setQuantity((q) => Math.max(1, q - 1))} className="p-3 hover:bg-secondary transition-colors rounded-l-lg" disabled={isOutOfStock}>
                   <Minus className="h-4 w-4" />
                 </button>
                 <span className="px-5 text-sm font-semibold">{quantity}</span>
-                <button onClick={() => setQuantity((q) => q + 1)} className="p-3 hover:bg-secondary transition-colors rounded-r-lg">
+                <button onClick={() => setQuantity((q) => q + 1)} className="p-3 hover:bg-secondary transition-colors rounded-r-lg" disabled={isOutOfStock}>
                   <Plus className="h-4 w-4" />
                 </button>
               </div>
-              <Button onClick={handleAddToCart} className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold gap-2 h-12">
+              <Button
+                onClick={handleAddToCart}
+                disabled={isOutOfStock}
+                className="flex-1 bg-accent text-accent-foreground hover:bg-accent/90 font-semibold gap-2 h-12 disabled:opacity-50"
+              >
                 <ShoppingBag className="h-5 w-5" />
-                Add to Cart — {formatPrice(product.price * quantity)}
+                {isOutOfStock ? "Sold Out" : `Add to Cart — ${formatPrice(product.price * quantity)}`}
               </Button>
             </div>
 
@@ -231,6 +253,10 @@ const ProductDetail = () => {
             </div>
           </motion.div>
         </div>
+
+
+        {/* Product Reviews */}
+        <ProductReviews productId={product.id} />
 
         {/* Related Products */}
         {relatedProducts.length > 0 && (
