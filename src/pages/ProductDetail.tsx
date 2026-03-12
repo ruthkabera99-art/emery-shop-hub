@@ -68,7 +68,11 @@ const ProductDetail = () => {
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 4);
 
+  const isOutOfStock = product.inStock === false;
+  const isLowStock = !isOutOfStock && product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
+
   const handleAddToCart = () => {
+    if (isOutOfStock) return;
     for (let i = 0; i < quantity; i++) {
       addToCart(product);
     }
