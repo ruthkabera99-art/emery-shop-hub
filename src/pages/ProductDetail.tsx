@@ -14,7 +14,7 @@ import { formatPrice } from "@/lib/currency";
 import { products as fallbackProducts } from "@/data/products";
 import ImageModal from "@/components/ImageModal";
 import OptimizedImage from "@/components/OptimizedImage";
-
+import ProductReviews from "@/components/ProductReviews";
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: dbProducts = [], isLoading } = useProducts();
