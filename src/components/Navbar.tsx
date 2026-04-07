@@ -1,13 +1,15 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ShoppingBag, Menu, X, Search, User } from "lucide-react";
+import { ShoppingBag, Menu, X, Search, User, Heart, LogOut } from "lucide-react";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 import { motion, AnimatePresence } from "framer-motion";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 
 const Navbar = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const { totalItems } = useCart();
+  const { user, signOut } = useAuth();
   const { menu, loaded } = useSiteSettings();
 
   const navLinks = loaded
@@ -35,9 +37,16 @@ const Navbar = () => {
           ))}
         </nav>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-1 sm:gap-2">
           <button className="p-2 hover:bg-secondary rounded-full transition-colors"><Search className="h-4 w-4" /></button>
-          <Link to="/admin" className="p-2 hover:bg-secondary rounded-full transition-colors"><User className="h-4 w-4" /></Link>
+          {user && (
+            <Link to="/account" className="p-2 hover:bg-secondary rounded-full transition-colors">
+              <Heart className="h-4 w-4" />
+            </Link>
+          )}
+          <Link to={user ? "/account" : "/auth"} className="p-2 hover:bg-secondary rounded-full transition-colors">
+            <User className="h-4 w-4" />
+          </Link>
           <Link to="/cart" className="relative p-2 hover:bg-secondary rounded-full transition-colors">
             <ShoppingBag className="h-4 w-4" />
             {totalItems > 0 && (
@@ -66,6 +75,20 @@ const Navbar = () => {
                   {l.name}
                 </Link>
               ))}
+              {user ? (
+                <>
+                  <Link to="/account" onClick={() => setMobileOpen(false)} className="text-sm font-medium py-2 text-muted-foreground hover:text-foreground">
+                    My Account
+                  </Link>
+                  <button onClick={() => { signOut(); setMobileOpen(false); }} className="text-sm font-medium py-2 text-muted-foreground hover:text-foreground text-left flex items-center gap-2">
+                    <LogOut className="h-4 w-4" /> Sign Out
+                  </button>
+                </>
+              ) : (
+                <Link to="/auth" onClick={() => setMobileOpen(false)} className="text-sm font-medium py-2 text-accent">
+                  Sign In / Sign Up
+                </Link>
+              )}
             </nav>
           </motion.div>
         )}

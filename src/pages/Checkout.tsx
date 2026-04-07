@@ -10,11 +10,14 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { CreditCard, Truck, ShieldCheck, Tag, X, Check } from "lucide-react";
 import { useCoupon } from "@/hooks/useCoupon";
+import { useAuth } from "@/context/AuthContext";
+import { supabase } from "@/integrations/supabase/client";
 
 const Checkout = () => {
   const { items, totalPrice, totalItems, clearCart } = useCart();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
   const { coupon, loading: couponLoading, applyCoupon, removeCoupon, calculateDiscount } = useCoupon();
@@ -23,14 +26,27 @@ const Checkout = () => {
   const shipping = totalPrice >= 100 ? 0 : 9.99;
   const total = totalPrice - discount + shipping;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setTimeout(() => {
-      const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
-      clearCart();
-      navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
-    }, 1500);
+
+    // Save order if user is authenticated
+    if (user) {
+      try {
+        await supabase.from("orders").insert({
+          user_id: user.id,
+          total,
+          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+          status: "pending",
+        });
+      } catch (err) {
+        console.error("Failed to save order:", err);
+      }
+    }
+
+    const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
+    clearCart();
+    navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
   };
 
   if (items.length === 0) {
