@@ -1,17 +1,20 @@
-import { Star, ShoppingBag, AlertTriangle } from "lucide-react";
+import { Star, ShoppingBag, AlertTriangle, Heart } from "lucide-react";
 import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { Product } from "@/data/products";
 import { getImage } from "@/lib/images";
 import { formatPrice } from "@/lib/currency";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/hooks/useWishlist";
 import { Button } from "@/components/ui/button";
 import OptimizedImage from "@/components/OptimizedImage";
 
 const ProductCard = ({ product, index = 0 }: { product: Product; index?: number }) => {
   const { addToCart } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const isOutOfStock = product.inStock === false;
   const isLowStock = !isOutOfStock && product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
+  const wishlisted = isInWishlist(product.id);
 
   return (
     <motion.div
@@ -45,15 +48,28 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
               Low Stock
             </span>
           )}
-          {!isOutOfStock && (
+          <div className="absolute top-2 right-2 sm:top-3 sm:right-3 flex flex-col gap-1.5">
             <Button
               size="icon"
-              onClick={(e) => { e.stopPropagation(); addToCart(product); }}
-              className="absolute top-2 right-2 sm:top-3 sm:right-3 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-card text-foreground hover:bg-accent hover:text-accent-foreground h-8 w-8 sm:h-9 sm:w-9 rounded-full shadow-elevated"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); toggleWishlist(product.id); }}
+              className={`opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all h-8 w-8 sm:h-9 sm:w-9 rounded-full shadow-elevated ${
+                wishlisted
+                  ? "bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  : "bg-card text-foreground hover:bg-accent hover:text-accent-foreground"
+              }`}
             >
-              <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${wishlisted ? "fill-current" : ""}`} />
             </Button>
-          )}
+            {!isOutOfStock && (
+              <Button
+                size="icon"
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); addToCart(product); }}
+                className="opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity bg-card text-foreground hover:bg-accent hover:text-accent-foreground h-8 w-8 sm:h-9 sm:w-9 rounded-full shadow-elevated"
+              >
+                <ShoppingBag className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+              </Button>
+            )}
+          </div>
         </div>
         <div className="pt-2 sm:pt-4 px-1">
           <p className="text-[9px] sm:text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{product.brand}</p>
