@@ -43,7 +43,7 @@ const ProductCard = ({ product, index = 0 }: { product: Product; index?: number 
           </span>
         )}
         {isLowStock && (
-          <span className="absolute top-3 left-3 sm:top-4 sm:left-4 px-3 py-1 text-[10px] sm:text-xs font-semibold rounded-full bg-orange-500 text-white flex items-center gap-1">
+          <span className="absolute top-3 left-3 sm:top-4 sm:left-4 px-3 py-1 text-[10px] sm:text-xs font-semibold rounded-full bg-accent text-accent-foreground flex items-center gap-1">
             <AlertTriangle className="h-3 w-3" />
             Low Stock
           </span>
