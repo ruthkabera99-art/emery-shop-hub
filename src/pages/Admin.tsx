@@ -297,6 +297,7 @@ const useAdminProducts = () => {
       reviews_count: product.reviews_count,
       in_stock: product.in_stock,
       badge: product.badge || null,
+      stock_quantity: (product as any).stock_quantity ?? 50,
     }).eq("id", id);
     if (error) {
       toast({ title: "Error updating product", description: error.message, variant: "destructive" });
