@@ -1196,6 +1196,12 @@ const Admin = () => {
                 </Select>
               </div>
               <div>
+                <Label className="mb-1.5 block">Stock Quantity</Label>
+                <Input type="number" min="0" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: parseInt(e.target.value) || 0 })} placeholder="e.g. 50" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
                 <Label className="mb-1.5 block">Badge</Label>
                 <Select value={productForm.badge || "none"} onValueChange={(v) => setProductForm({ ...productForm, badge: v === "none" ? "" : v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
