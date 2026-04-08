@@ -105,10 +105,14 @@ interface SettingsData {
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
+  { id: "products", label: "Products", icon: Package },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "coupons", label: "Coupons", icon: Tag },
+  { id: "reviews", label: "Reviews", icon: Star },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "visitors", label: "Visitors", icon: Eye },
   { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "products", label: "Products", icon: Package },
-  { id: "reviews", label: "Reviews", icon: Star },
   { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
