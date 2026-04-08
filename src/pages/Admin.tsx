@@ -27,6 +27,7 @@ import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
+  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
@@ -34,6 +35,10 @@ import FooterEditor from "@/components/admin/FooterEditor";
 import MenuEditor from "@/components/admin/MenuEditor";
 import HomepageEditor from "@/components/admin/HomepageEditor";
 import HeroBannerEditor from "@/components/admin/HeroBannerEditor";
+import OrdersManager from "@/components/admin/OrdersManager";
+import CouponsManager from "@/components/admin/CouponsManager";
+import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
+import CustomersManager from "@/components/admin/CustomersManager";
 
 // ── Types ──
 interface Visitor {
@@ -100,10 +105,14 @@ interface SettingsData {
 
 const tabs = [
   { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { id: "orders", label: "Orders", icon: ShoppingBag },
+  { id: "products", label: "Products", icon: Package },
+  { id: "customers", label: "Customers", icon: Users },
+  { id: "coupons", label: "Coupons", icon: Tag },
+  { id: "reviews", label: "Reviews", icon: Star },
+  { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "visitors", label: "Visitors", icon: Eye },
   { id: "chat", label: "Chat", icon: MessageSquare },
-  { id: "products", label: "Products", icon: Package },
-  { id: "reviews", label: "Reviews", icon: Star },
   { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
@@ -265,6 +274,7 @@ const useAdminProducts = () => {
       reviews_count: product.reviews_count || 0,
       in_stock: product.in_stock ?? true,
       badge: product.badge || null,
+      stock_quantity: (product as any).stock_quantity ?? 50,
     });
     if (error) {
       toast({ title: "Error adding product", description: error.message, variant: "destructive" });
@@ -287,6 +297,7 @@ const useAdminProducts = () => {
       reviews_count: product.reviews_count,
       in_stock: product.in_stock,
       badge: product.badge || null,
+      stock_quantity: (product as any).stock_quantity ?? 50,
     }).eq("id", id);
     if (error) {
       toast({ title: "Error updating product", description: error.message, variant: "destructive" });
@@ -460,7 +471,7 @@ const Admin = () => {
   const [editingProduct, setEditingProduct] = useState<DbProduct | null>(null);
   const [productForm, setProductForm] = useState({
     name: "", price: 0, brand: "", category: "mens", description: "",
-    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true, badge: "",
+    images: [] as string[], rating: 0, reviews_count: 0, in_stock: true, badge: "", stock_quantity: 50,
   });
   const [deleteDialog, setDeleteDialog] = useState<string | null>(null);
   const [reviewDialog, setReviewDialog] = useState(false);
@@ -525,7 +536,7 @@ const Admin = () => {
   // ── Product CRUD ──
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true, badge: "" });
+    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true, badge: "", stock_quantity: 50 });
     setProductDialog(true);
   };
 
@@ -535,7 +546,7 @@ const Admin = () => {
       name: p.name, price: p.price, brand: p.brand, category: p.category,
       description: p.description || "", images: p.images || [],
       rating: p.rating || 0, reviews_count: p.reviews_count || 0, in_stock: p.in_stock,
-      badge: p.badge || "",
+      badge: p.badge || "", stock_quantity: (p as any).stock_quantity ?? 50,
     });
     setProductDialog(true);
   };
@@ -985,7 +996,7 @@ const Admin = () => {
             </div>
           )}
 
-          {/* ── REVIEWS ── */}
+          {/* ── REVIEWS (with moderation) ── */}
           {activeTab === "reviews" && (
             <div>
               <div className="flex items-center justify-between mb-8">
@@ -1001,6 +1012,21 @@ const Admin = () => {
                   </Button>
                 </div>
               </div>
+              {/* Moderation stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "approved").length}</p>
+                  <p className="text-xs text-muted-foreground">Approved</p>
+                </div>
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "pending").length}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "rejected").length}</p>
+                  <p className="text-xs text-muted-foreground">Rejected</p>
+                </div>
+              </div>
               <div className="grid gap-4">
                 {adminReviews.reviews.map((r) => (
                   <div key={r.id} className="bg-card rounded-lg p-5 shadow-soft">
@@ -1013,15 +1039,35 @@ const Admin = () => {
                           <Star key={`e-${j}`} className="h-4 w-4 text-muted" />
                         ))}
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewId(r.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="flex gap-1">
+                        {r.status !== "approved" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={async () => {
+                            await supabase.from("reviews").update({ status: "approved" }).eq("id", r.id);
+                            adminReviews.refresh();
+                            toast({ title: "Review Approved" });
+                          }}>
+                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                          </Button>
+                        )}
+                        {r.status !== "rejected" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={async () => {
+                            await supabase.from("reviews").update({ status: "rejected" }).eq("id", r.id);
+                            adminReviews.refresh();
+                            toast({ title: "Review Rejected" });
+                          }}>
+                            <XCircle className="h-3 w-3 mr-1" /> Reject
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewId(r.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-sm mb-3">"{r.comment}"</p>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">{r.customer_name}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        r.status === "approved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                        r.status === "approved" ? "bg-green-100 text-green-700" : r.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
                       }`}>{r.status}</span>
                     </div>
                   </div>
@@ -1035,6 +1081,18 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+          {/* ── ORDERS ── */}
+          {activeTab === "orders" && <OrdersManager />}
+
+          {/* ── COUPONS ── */}
+          {activeTab === "coupons" && <CouponsManager />}
+
+          {/* ── ANALYTICS ── */}
+          {activeTab === "analytics" && <AnalyticsDashboard />}
+
+          {/* ── CUSTOMERS ── */}
+          {activeTab === "customers" && <CustomersManager />}
 
           {/* ── HERO BANNER ── */}
           {activeTab === "hero" && <HeroBannerEditor />}
@@ -1139,6 +1197,12 @@ const Admin = () => {
                   </SelectContent>
                 </Select>
               </div>
+              <div>
+                <Label className="mb-1.5 block">Stock Quantity</Label>
+                <Input type="number" min="0" value={productForm.stock_quantity} onChange={(e) => setProductForm({ ...productForm, stock_quantity: parseInt(e.target.value) || 0 })} placeholder="e.g. 50" />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <Label className="mb-1.5 block">Badge</Label>
                 <Select value={productForm.badge || "none"} onValueChange={(v) => setProductForm({ ...productForm, badge: v === "none" ? "" : v })}>
