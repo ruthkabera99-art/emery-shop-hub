@@ -994,7 +994,7 @@ const Admin = () => {
             </div>
           )}
 
-          {/* ── REVIEWS ── */}
+          {/* ── REVIEWS (with moderation) ── */}
           {activeTab === "reviews" && (
             <div>
               <div className="flex items-center justify-between mb-8">
@@ -1010,6 +1010,21 @@ const Admin = () => {
                   </Button>
                 </div>
               </div>
+              {/* Moderation stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "approved").length}</p>
+                  <p className="text-xs text-muted-foreground">Approved</p>
+                </div>
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "pending").length}</p>
+                  <p className="text-xs text-muted-foreground">Pending</p>
+                </div>
+                <div className="bg-card rounded-lg p-4 shadow-soft text-center">
+                  <p className="text-2xl font-bold">{adminReviews.reviews.filter((r) => r.status === "rejected").length}</p>
+                  <p className="text-xs text-muted-foreground">Rejected</p>
+                </div>
+              </div>
               <div className="grid gap-4">
                 {adminReviews.reviews.map((r) => (
                   <div key={r.id} className="bg-card rounded-lg p-5 shadow-soft">
@@ -1022,15 +1037,35 @@ const Admin = () => {
                           <Star key={`e-${j}`} className="h-4 w-4 text-muted" />
                         ))}
                       </div>
-                      <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewId(r.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+                      <div className="flex gap-1">
+                        {r.status !== "approved" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={async () => {
+                            await supabase.from("reviews").update({ status: "approved" }).eq("id", r.id);
+                            adminReviews.refresh();
+                            toast({ title: "Review Approved" });
+                          }}>
+                            <CheckCircle className="h-3 w-3 mr-1" /> Approve
+                          </Button>
+                        )}
+                        {r.status !== "rejected" && (
+                          <Button size="sm" variant="outline" className="h-7 text-xs" onClick={async () => {
+                            await supabase.from("reviews").update({ status: "rejected" }).eq("id", r.id);
+                            adminReviews.refresh();
+                            toast({ title: "Review Rejected" });
+                          }}>
+                            <XCircle className="h-3 w-3 mr-1" /> Reject
+                          </Button>
+                        )}
+                        <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive" onClick={() => setDeleteReviewId(r.id)}>
+                          <Trash2 className="h-3 w-3" />
+                        </Button>
+                      </div>
                     </div>
                     <p className="text-sm mb-3">"{r.comment}"</p>
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium">{r.customer_name}</p>
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                        r.status === "approved" ? "bg-green-100 text-green-700" : "bg-yellow-100 text-yellow-700"
+                        r.status === "approved" ? "bg-green-100 text-green-700" : r.status === "rejected" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"
                       }`}>{r.status}</span>
                     </div>
                   </div>
@@ -1044,6 +1079,18 @@ const Admin = () => {
               </div>
             </div>
           )}
+
+          {/* ── ORDERS ── */}
+          {activeTab === "orders" && <OrdersManager />}
+
+          {/* ── COUPONS ── */}
+          {activeTab === "coupons" && <CouponsManager />}
+
+          {/* ── ANALYTICS ── */}
+          {activeTab === "analytics" && <AnalyticsDashboard />}
+
+          {/* ── CUSTOMERS ── */}
+          {activeTab === "customers" && <CustomersManager />}
 
           {/* ── HERO BANNER ── */}
           {activeTab === "hero" && <HeroBannerEditor />}
