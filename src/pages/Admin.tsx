@@ -534,7 +534,7 @@ const Admin = () => {
   // ── Product CRUD ──
   const openAddProduct = () => {
     setEditingProduct(null);
-    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true, badge: "" });
+    setProductForm({ name: "", price: 0, brand: "", category: "mens", description: "", images: [], rating: 0, reviews_count: 0, in_stock: true, badge: "", stock_quantity: 50 });
     setProductDialog(true);
   };
 
