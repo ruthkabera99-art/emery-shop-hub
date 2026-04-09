@@ -120,6 +120,7 @@ const tabs = [
   { id: "footer", label: "Footer", icon: FileText },
   { id: "menu", label: "Menu", icon: MenuIcon },
   { id: "homepage", label: "Homepage", icon: Layout },
+  { id: "roles", label: "Roles", icon: ShieldCheck },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
