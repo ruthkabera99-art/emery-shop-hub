@@ -1121,7 +1121,9 @@ const Admin = () => {
           {/* ── HOMEPAGE ── */}
           {activeTab === "homepage" && <HomepageEditor />}
 
-          {/* ── SETTINGS ── */}
+          {/* ── ROLES ── */}
+          {activeTab === "roles" && <RolesManager />}
+
           {activeTab === "settings" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
