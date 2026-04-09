@@ -39,6 +39,7 @@ import OrdersManager from "@/components/admin/OrdersManager";
 import CouponsManager from "@/components/admin/CouponsManager";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import CustomersManager from "@/components/admin/CustomersManager";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Types ──
 interface Visitor {
@@ -486,6 +487,7 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const adminReviews = useAdminReviews();
   const adminSettings = useAdminSettings();
+  const { isAdmin, loading: roleLoading } = useAdminRole();
 
   // Auth check
   useEffect(() => {
@@ -506,6 +508,14 @@ const Admin = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  // Redirect non-admin users
+  useEffect(() => {
+    if (!roleLoading && isAdmin === false && authChecked) {
+      toast({ title: "Access Denied", description: "You don't have admin privileges.", variant: "destructive" });
+      navigate("/", { replace: true });
+    }
+  }, [isAdmin, roleLoading, authChecked, navigate, toast]);
+
   // Chat auto-scroll
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -517,7 +527,7 @@ const Admin = () => {
     navigate("/admin/login");
   };
 
-  if (!authChecked) {
+  if (!authChecked || roleLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-muted-foreground">Loading...</div>
@@ -525,7 +535,7 @@ const Admin = () => {
     );
   }
 
-  if (!user) return null;
+  if (!user || !isAdmin) return null;
 
 
   const handleSendReply = async () => {
