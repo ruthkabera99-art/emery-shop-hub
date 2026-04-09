@@ -27,7 +27,7 @@ import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
-  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle,
+  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
@@ -39,6 +39,7 @@ import OrdersManager from "@/components/admin/OrdersManager";
 import CouponsManager from "@/components/admin/CouponsManager";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import CustomersManager from "@/components/admin/CustomersManager";
+import RolesManager from "@/components/admin/RolesManager";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Types ──
@@ -119,6 +120,7 @@ const tabs = [
   { id: "footer", label: "Footer", icon: FileText },
   { id: "menu", label: "Menu", icon: MenuIcon },
   { id: "homepage", label: "Homepage", icon: Layout },
+  { id: "roles", label: "Roles", icon: ShieldCheck },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -1119,7 +1121,9 @@ const Admin = () => {
           {/* ── HOMEPAGE ── */}
           {activeTab === "homepage" && <HomepageEditor />}
 
-          {/* ── SETTINGS ── */}
+          {/* ── ROLES ── */}
+          {activeTab === "roles" && <RolesManager />}
+
           {activeTab === "settings" && (
             <div>
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
