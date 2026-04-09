@@ -39,6 +39,7 @@ import OrdersManager from "@/components/admin/OrdersManager";
 import CouponsManager from "@/components/admin/CouponsManager";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import CustomersManager from "@/components/admin/CustomersManager";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Types ──
 interface Visitor {
