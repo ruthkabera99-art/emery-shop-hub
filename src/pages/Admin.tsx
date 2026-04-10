@@ -439,6 +439,9 @@ const useAdminSettings = () => {
         currency: map.currency || defaultSettings.currency,
         phone: map.phone || defaultSettings.phone,
         address: map.address || defaultSettings.address,
+        stripePublishableKey: map.stripePublishableKey || "",
+        stripeSecretKey: map.stripeSecretKey || "",
+        stripeEnabled: map.stripeEnabled || "false",
       });
     }
     setLoading(false);
