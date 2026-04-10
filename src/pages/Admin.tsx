@@ -1162,6 +1162,55 @@ const Admin = () => {
                 </Button>
               </div>
 
+              {/* Stripe Configuration */}
+              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-border">
+                <h3 className="font-display text-lg font-bold mb-1 flex items-center gap-2">
+                  <Euro className="h-5 w-5 text-primary" /> Stripe Payment Configuration
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">Configure Stripe to accept online payments.</p>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <Label className="min-w-[100px]">Enabled</Label>
+                    <Select
+                      value={adminSettings.settings.stripeEnabled}
+                      onValueChange={(v) => adminSettings.setSettings({ ...adminSettings.settings, stripeEnabled: v })}
+                    >
+                      <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="true">Yes</SelectItem>
+                        <SelectItem value="false">No</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {adminSettings.settings.stripeEnabled === "true" ? (
+                      <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="h-3.5 w-3.5" /> Active</span>
+                    ) : (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground"><XCircle className="h-3.5 w-3.5" /> Inactive</span>
+                    )}
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Publishable Key</Label>
+                    <Input
+                      value={adminSettings.settings.stripePublishableKey}
+                      onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, stripePublishableKey: e.target.value })}
+                      placeholder="pk_live_... or pk_test_..."
+                    />
+                  </div>
+                  <div>
+                    <Label className="mb-1.5 block">Secret Key</Label>
+                    <Input
+                      type="password"
+                      value={adminSettings.settings.stripeSecretKey}
+                      onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, stripeSecretKey: e.target.value })}
+                      placeholder="sk_live_... or sk_test_..."
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">Your secret key is stored securely and never exposed to clients.</p>
+                  </div>
+                  <Button onClick={() => adminSettings.saveSettings(adminSettings.settings)} className="bg-accent text-accent-foreground hover:bg-accent/90">
+                    <Save className="h-4 w-4 mr-1" /> Save Stripe Settings
+                  </Button>
+                </div>
+              </div>
+
               {/* Danger Zone */}
               <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-destructive/20">
                 <h3 className="font-display text-lg font-bold text-destructive mb-3">Danger Zone</h3>
