@@ -103,6 +103,9 @@ interface SettingsData {
   currency: string;
   phone: string;
   address: string;
+  stripePublishableKey: string;
+  stripeSecretKey: string;
+  stripeEnabled: string;
 }
 
 const tabs = [
@@ -133,6 +136,9 @@ const defaultSettings: SettingsData = {
   currency: "EUR (€)",
   phone: "+250 788 000 000",
   address: "Kigali, Rwanda",
+  stripePublishableKey: "",
+  stripeSecretKey: "",
+  stripeEnabled: "false",
 };
 
 // ── Visitor Stats Hook ──
