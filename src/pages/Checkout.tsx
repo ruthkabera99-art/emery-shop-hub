@@ -30,23 +30,53 @@ const Checkout = () => {
     e.preventDefault();
     setLoading(true);
 
-    // Save order if user is authenticated
-    if (user) {
-      try {
+    if (!user) {
+      toast({ title: "Please sign in", description: "You must be logged in to checkout.", variant: "destructive" });
+      setLoading(false);
+      return;
+    }
+
+    try {
+      // Call edge function to create Stripe checkout session
+      const { data, error } = await supabase.functions.invoke("create-checkout", {
+        body: {
+          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+          total,
+          couponCode: coupon?.valid ? coupon.code : null,
+          shippingAddress: null,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message || "Payment failed");
+      }
+
+      if (data?.url) {
+        // Redirect to Stripe Checkout
+        clearCart();
+        window.location.href = data.url;
+      } else if (data?.error) {
+        // Stripe not configured — fallback to demo flow
+        console.warn("Stripe not configured:", data.error);
+        toast({ title: "Demo Mode", description: "Stripe is not configured. Processing as demo order." });
+
         await supabase.from("orders").insert({
           user_id: user.id,
           total,
           items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
           status: "pending",
         });
-      } catch (err) {
-        console.error("Failed to save order:", err);
-      }
-    }
 
-    const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
-    clearCart();
-    navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
+        const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
+        clearCart();
+        navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
+      }
+    } catch (err: any) {
+      console.error("Checkout error:", err);
+      toast({ title: "Checkout Error", description: err.message || "Something went wrong.", variant: "destructive" });
+    } finally {
+      setLoading(false);
+    }
   };
 
   if (items.length === 0) {
