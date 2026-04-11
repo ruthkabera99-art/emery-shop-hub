@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
+import SEOHead from "@/components/SEOHead";
 
 const ITEMS_PER_PAGE = 12;
 
