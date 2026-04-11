@@ -12,3 +12,10 @@ Allow: /
 
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /admin/login
+Disallow: /checkout
+Disallow: /booking-confirmation
+Disallow: /account
+
+Sitemap: https://emerycollectionshop.store/sitemap.xml
