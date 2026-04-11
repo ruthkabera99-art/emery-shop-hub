@@ -40,6 +40,7 @@ import CouponsManager from "@/components/admin/CouponsManager";
 import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import CustomersManager from "@/components/admin/CustomersManager";
 import RolesManager from "@/components/admin/RolesManager";
+import BlogManager from "@/components/admin/BlogManager";
 import { useAdminRole } from "@/hooks/useAdminRole";
 
 // ── Types ──
@@ -124,6 +125,7 @@ const tabs = [
   { id: "menu", label: "Menu", icon: MenuIcon },
   { id: "homepage", label: "Homepage", icon: Layout },
   { id: "roles", label: "Roles", icon: ShieldCheck },
+  { id: "blog", label: "Blog", icon: FileText },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -1132,6 +1134,15 @@ const Admin = () => {
 
           {/* ── ROLES ── */}
           {activeTab === "roles" && <RolesManager />}
+
+          {activeTab === "blog" && (
+            <div>
+              <h1 className="font-display text-3xl font-bold mb-8">Blog Management</h1>
+              <div className="bg-card rounded-xl p-6 shadow-soft">
+                <BlogManager />
+              </div>
+            </div>
+          )}
 
           {activeTab === "settings" && (
             <div>
