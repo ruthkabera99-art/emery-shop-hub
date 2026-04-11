@@ -7,6 +7,7 @@ const About = () => (
     <SEOHead title="About Emery Collection | Our Story" description="Learn about Emery Collection — our passion for premium footwear, exceptional craftsmanship, and commitment to quality since day one." canonical="https://emerycollectionshop.store/about" />
     <Navbar />
     <main className="container mx-auto px-4 lg:px-8 py-16">
+      <div className="max-w-3xl mx-auto text-center">
         <h1 className="font-display text-4xl md:text-5xl font-bold mb-6">About Emery Collection</h1>
         <p className="text-muted-foreground text-lg leading-relaxed mb-8">
           Founded with a passion for exceptional footwear, Emery Collection brings together premium materials, timeless designs, and modern comfort. Every pair tells a story of craftsmanship and dedication to quality.
