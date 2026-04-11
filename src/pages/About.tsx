@@ -1,8 +1,10 @@
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
+import SEOHead from "@/components/SEOHead";
 
 const About = () => (
   <div className="min-h-screen">
+    <SEOHead title="About Emery Collection | Our Story" description="Learn about Emery Collection — our passion for premium footwear, exceptional craftsmanship, and commitment to quality since day one." canonical="https://emerycollectionshop.store/about" />
     <Navbar />
     <main className="container mx-auto px-4 lg:px-8 py-16">
       <div className="max-w-3xl mx-auto text-center">

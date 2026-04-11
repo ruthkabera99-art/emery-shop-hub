@@ -15,6 +15,7 @@ import { products as fallbackProducts } from "@/data/products";
 import ImageModal from "@/components/ImageModal";
 import OptimizedImage from "@/components/OptimizedImage";
 import ProductReviews from "@/components/ProductReviews";
+import SEOHead from "@/components/SEOHead";
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: dbProducts = [], isLoading } = useProducts();
@@ -83,6 +84,11 @@ const ProductDetail = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title={`${product.name} | Emery Collection Shop`}
+        description={product.description || `Buy ${product.name} from Emery Collection. Premium quality footwear at great prices.`}
+        canonical={`https://emerycollectionshop.store/product/${product.id}`}
+      />
       <Navbar />
       <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
         {/* Breadcrumb */}

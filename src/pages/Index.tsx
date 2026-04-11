@@ -10,6 +10,7 @@ import LiveChat from "@/components/LiveChat";
 import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useMemo } from "react";
+import SEOHead from "@/components/SEOHead";
 
 const sectionComponents: Record<string, React.ReactNode> = {};
 
@@ -36,6 +37,11 @@ const Index = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead
+        title="Emery Collection Shop – Premium Footwear & Shoes Online"
+        description="Shop premium footwear at Emery Collection. Discover stylish sneakers, boots, heels & sandals with free shipping worldwide."
+        canonical="https://emerycollectionshop.store/"
+      />
       <Navbar />
       <main>
         {!loaded ? (
