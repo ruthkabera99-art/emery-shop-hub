@@ -19,6 +19,7 @@ const Contact = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead title="Contact Us | Emery Collection Shop" description="Get in touch with Emery Collection. Questions about orders, returns, or products? We'd love to hear from you." canonical="https://emerycollectionshop.store/contact" />
       <Navbar />
       <main className="container mx-auto px-4 lg:px-8 py-16">
         <div className="max-w-4xl mx-auto">

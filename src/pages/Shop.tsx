@@ -100,6 +100,7 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen">
+      <SEOHead title="Shop Premium Shoes | Emery Collection" description="Browse our full collection of premium sneakers, boots, heels & sandals. Free shipping on all orders." canonical="https://emerycollectionshop.store/shop" />
       <Navbar />
       <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
         <div className="flex items-center justify-between mb-4 sm:mb-8">
