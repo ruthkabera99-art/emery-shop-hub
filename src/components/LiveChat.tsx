@@ -23,6 +23,8 @@ interface Message {
   content: string;
   sender_type: string;
   created_at: string;
+  status?: string;
+  read_at?: string | null;
 }
 
 const AUTO_GREETING = "Welcome to Emery Collection shop 👋 How can we assist you today?";
@@ -102,6 +104,22 @@ const LiveChat = () => {
     return () => clearTimeout(timer);
   }, [conversationId, hasGreeted, messages.length]);
 
+  // Mark admin messages as read when chat is open
+  useEffect(() => {
+    if (!open || !conversationId) return;
+    const unreadAdmin = messages.filter(
+      (m) => m.sender_type === "admin" && m.status !== "read" && !m.read_at
+    );
+    if (unreadAdmin.length > 0) {
+      const ids = unreadAdmin.map((m) => m.id);
+      supabase
+        .from("messages")
+        .update({ status: "read", read_at: new Date().toISOString(), is_read: true })
+        .in("id", ids)
+        .then();
+    }
+  }, [open, messages, conversationId]);
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -121,6 +139,16 @@ const LiveChat = () => {
           }
         }
       )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        (payload) => {
+          const updated = payload.new as Message;
+          setMessages((prev) =>
+            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
+          );
+        }
+      )
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
@@ -134,11 +162,16 @@ const LiveChat = () => {
     const content = (text || input).trim();
     if (!content || !conversationId) return;
     if (!text) setInput("");
-    await supabase.from("messages").insert({
+    const { data } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_type: "visitor",
       content,
-    });
+      status: "sent",
+    }).select("id").single();
+    // Mark as delivered after insert succeeds
+    if (data) {
+      await supabase.from("messages").update({ status: "delivered" }).eq("id", data.id);
+    }
   }, [input, conversationId]);
 
   const handleStart = () => {
@@ -207,6 +240,8 @@ const LiveChat = () => {
                         content={m.content}
                         senderType={m.sender_type}
                         timestamp={m.created_at}
+                        status={m.status}
+                        readAt={m.read_at}
                       />
                     ))}
 
