@@ -113,11 +113,9 @@ const BlogManager = () => {
           onChange={(e) => setForm({ ...form, slug: e.target.value })}
         />
         <Input placeholder="Excerpt" value={form.excerpt} onChange={(e) => setForm({ ...form, excerpt: e.target.value })} />
-        <Textarea
-          placeholder="Content (HTML supported)"
-          value={form.content}
-          onChange={(e) => setForm({ ...form, content: e.target.value })}
-          className="min-h-[200px] font-mono text-sm"
+        <RichTextEditor
+          content={form.content}
+          onChange={(html) => setForm({ ...form, content: html })}
         />
         <Input placeholder="Cover Image URL" value={form.cover_image} onChange={(e) => setForm({ ...form, cover_image: e.target.value })} />
         <Input placeholder="Author" value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
