@@ -16,17 +16,22 @@ const ChatBubble = ({ content, senderType, timestamp }: ChatBubbleProps) => {
       transition={{ duration: 0.2 }}
       className={`flex ${isVisitor ? "justify-end" : "justify-start"}`}
     >
+      {!isVisitor && (
+        <div className="w-7 h-7 rounded-full bg-[#0084ff] flex items-center justify-center text-white text-[10px] font-bold shrink-0 mr-1.5 mt-auto">
+          EC
+        </div>
+      )}
       <div
-        className={`relative max-w-[80%] px-3 py-2 text-sm shadow-sm ${
+        className={`relative max-w-[75%] px-3 py-2 text-sm ${
           isVisitor
-            ? "bg-accent text-accent-foreground rounded-2xl rounded-br-sm"
-            : "bg-card text-card-foreground rounded-2xl rounded-bl-sm"
+            ? "bg-[#0084ff] text-white rounded-[18px] rounded-br-[4px]"
+            : "bg-card text-card-foreground rounded-[18px] rounded-bl-[4px] shadow-sm"
         }`}
       >
         <p className="leading-relaxed whitespace-pre-wrap">{content}</p>
         <p
-          className={`text-[10px] mt-1 text-right ${
-            isVisitor ? "text-accent-foreground/60" : "text-muted-foreground"
+          className={`text-[10px] mt-0.5 text-right ${
+            isVisitor ? "text-white/60" : "text-muted-foreground"
           }`}
         >
           {new Date(timestamp).toLocaleTimeString([], {
