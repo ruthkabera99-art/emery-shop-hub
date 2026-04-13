@@ -1,12 +1,25 @@
 import { motion } from "framer-motion";
+import { Check, CheckCheck } from "lucide-react";
 
 interface ChatBubbleProps {
   content: string;
   senderType: string;
   timestamp: string;
+  status?: string;
+  readAt?: string | null;
 }
 
-const ChatBubble = ({ content, senderType, timestamp }: ChatBubbleProps) => {
+const StatusIcon = ({ status, readAt }: { status?: string; readAt?: string | null }) => {
+  if (readAt || status === "read") {
+    return <CheckCheck className="h-3.5 w-3.5 text-[#0084ff]" />;
+  }
+  if (status === "delivered") {
+    return <CheckCheck className="h-3.5 w-3.5 text-white/50" />;
+  }
+  return <Check className="h-3.5 w-3.5 text-white/50" />;
+};
+
+const ChatBubble = ({ content, senderType, timestamp, status, readAt }: ChatBubbleProps) => {
   const isVisitor = senderType === "visitor";
 
   return (
@@ -29,16 +42,19 @@ const ChatBubble = ({ content, senderType, timestamp }: ChatBubbleProps) => {
         }`}
       >
         <p className="leading-relaxed whitespace-pre-wrap">{content}</p>
-        <p
-          className={`text-[10px] mt-0.5 text-right ${
+        <div
+          className={`flex items-center gap-1 mt-0.5 justify-end ${
             isVisitor ? "text-white/60" : "text-muted-foreground"
           }`}
         >
-          {new Date(timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
-        </p>
+          <span className="text-[10px]">
+            {new Date(timestamp).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </span>
+          {isVisitor && <StatusIcon status={status} readAt={readAt} />}
+        </div>
       </div>
     </motion.div>
   );
