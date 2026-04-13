@@ -3,7 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBlogPosts, BlogPost } from "@/hooks/useBlog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import RichTextEditor from "@/components/admin/RichTextEditor";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useQueryClient } from "@tanstack/react-query";
