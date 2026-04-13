@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MessageCircle, X, Send } from "lucide-react";
+import { X, Send, ThumbsUp } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,14 @@ interface Message {
 
 const AUTO_GREETING = "Welcome to Emery Collection shop 👋 How can we assist you today?";
 
+// Messenger SVG icon
+const MessengerIcon = ({ className }: { className?: string }) => (
+  <svg viewBox="0 0 28 28" fill="currentColor" className={className}>
+    <path d="M14 2.042c-6.76 0-12 4.952-12 11.64S7.24 25.322 14 25.322a12.73 12.73 0 0 0 4.028-.657l3.404 1.308a.85.85 0 0 0 1.107-.903l-.353-2.837c1.79-1.886 2.814-4.27 2.814-6.892C25 6.994 20.76 2.042 14 2.042Z" />
+    <path d="m8.476 15.593 2.56-4.063a1.5 1.5 0 0 1 2.092-.404l2.036 1.527a.6.6 0 0 0 .723 0l2.749-2.086a.474.474 0 0 1 .687.633l-2.56 4.063a1.5 1.5 0 0 1-2.093.404l-2.035-1.527a.6.6 0 0 0-.723 0l-2.75 2.086a.474.474 0 0 1-.686-.633Z" fill="white" />
+  </svg>
+);
+
 const LiveChat = () => {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -41,7 +49,6 @@ const LiveChat = () => {
   const sessionId = useRef(getSessionId());
   const playSound = useNotificationSound();
 
-  // Load or create conversation
   useEffect(() => {
     if (!open || !started) return;
 
@@ -80,7 +87,6 @@ const LiveChat = () => {
     init();
   }, [open, started]);
 
-  // Auto greeting
   useEffect(() => {
     if (!conversationId || hasGreeted || messages.length > 0) return;
     setHasGreeted(true);
@@ -96,7 +102,6 @@ const LiveChat = () => {
     return () => clearTimeout(timer);
   }, [conversationId, hasGreeted, messages.length]);
 
-  // Real-time subscription
   useEffect(() => {
     if (!conversationId) return;
 
@@ -151,7 +156,7 @@ const LiveChat = () => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 30, scale: 0.9 }}
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
-            className={`fixed bottom-24 right-4 sm:right-6 z-50 w-[340px] sm:w-[380px] rounded-2xl shadow-elevated border border-border overflow-hidden flex flex-col ${darkMode ? "dark" : ""}`}
+            className={`fixed bottom-24 right-4 sm:right-6 z-50 w-[340px] sm:w-[380px] rounded-2xl shadow-2xl border border-border overflow-hidden flex flex-col ${darkMode ? "dark" : ""}`}
             style={{ maxHeight: "75vh" }}
           >
             <div className={darkMode ? "dark bg-background text-foreground flex flex-col h-full" : "bg-background text-foreground flex flex-col h-full"}>
@@ -163,30 +168,32 @@ const LiveChat = () => {
 
               {!started ? (
                 <div className="p-6 space-y-4">
-                  <p className="text-sm text-muted-foreground">
-                    Welcome! Enter your name to start chatting with our team.
+                  <div className="flex justify-center mb-2">
+                    <div className="w-16 h-16 rounded-full bg-[#0084ff] flex items-center justify-center">
+                      <MessengerIcon className="h-9 w-9 text-white" />
+                    </div>
+                  </div>
+                  <p className="text-sm text-muted-foreground text-center">
+                    Chat with Emery Collection! Enter your name to get started.
                   </p>
                   <Input
                     placeholder="Your name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleStart()}
+                    className="rounded-full px-4"
                   />
                   <button
                     onClick={handleStart}
-                    className="w-full py-2.5 rounded-lg bg-accent text-accent-foreground font-semibold text-sm hover:bg-accent/90 transition-colors"
+                    className="w-full py-2.5 rounded-full bg-[#0084ff] text-white font-semibold text-sm hover:bg-[#0073e6] transition-colors"
                   >
                     Start Chat
                   </button>
                 </div>
               ) : (
                 <>
-                  {/* Messages area with WhatsApp-style doodle background */}
                   <div
-                    className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[220px] max-h-[400px]"
-                    style={{
-                      backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%239C92AC' fill-opacity='0.05'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
-                    }}
+                    className="flex-1 overflow-y-auto p-4 space-y-2 min-h-[220px] max-h-[400px] bg-muted/30"
                   >
                     {messages.length === 0 && !showTyping && (
                       <p className="text-xs text-muted-foreground text-center mt-8">
@@ -214,21 +221,24 @@ const LiveChat = () => {
                     <div ref={bottomRef} />
                   </div>
 
-                  {/* Input bar */}
-                  <div className="p-3 border-t border-border bg-card flex gap-2 items-center">
+                  {/* Messenger-style input bar */}
+                  <div className="p-2 border-t border-border bg-card flex gap-2 items-center">
                     <Input
-                      placeholder="Type a message..."
+                      placeholder="Aa"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                      className="text-sm bg-background"
+                      className="text-sm bg-muted/50 rounded-full px-4 border-0 focus-visible:ring-1 focus-visible:ring-[#0084ff]"
                     />
                     <button
-                      onClick={() => sendMessage()}
-                      disabled={!input.trim()}
-                      className="h-10 w-10 rounded-full bg-accent text-accent-foreground flex items-center justify-center hover:bg-accent/90 transition-colors disabled:opacity-40 shrink-0"
+                      onClick={() => input.trim() ? sendMessage() : sendMessage("👍")}
+                      className="h-9 w-9 rounded-full bg-[#0084ff] text-white flex items-center justify-center hover:bg-[#0073e6] transition-colors shrink-0"
                     >
-                      <Send className="h-4 w-4" />
+                      {input.trim() ? (
+                        <Send className="h-4 w-4" />
+                      ) : (
+                        <ThumbsUp className="h-4 w-4" />
+                      )}
                     </button>
                   </div>
                 </>
@@ -238,7 +248,7 @@ const LiveChat = () => {
         )}
       </AnimatePresence>
 
-      {/* Floating Action Button */}
+      {/* Messenger-style Floating Action Button */}
       <motion.button
         onClick={() => setOpen(!open)}
         initial={{ scale: 0 }}
@@ -247,11 +257,10 @@ const LiveChat = () => {
         className="fixed bottom-6 right-4 sm:right-6 z-50 group"
         aria-label={open ? "Close chat" : "Open chat"}
       >
-        {/* Pulse ring */}
         {!open && (
-          <span className="absolute inset-0 rounded-full bg-accent/30 animate-ping" style={{ animationDuration: "2s" }} />
+          <span className="absolute inset-0 rounded-full bg-[#0084ff]/30 animate-ping" style={{ animationDuration: "2s" }} />
         )}
-        <span className="relative flex items-center justify-center h-14 w-14 rounded-full bg-accent text-accent-foreground shadow-elevated transition-transform duration-200 group-hover:scale-110 group-hover:shadow-[0_0_20px_hsla(38,60%,55%,0.4)]">
+        <span className="relative flex items-center justify-center h-14 w-14 rounded-full bg-[#0084ff] text-white shadow-lg transition-transform duration-200 group-hover:scale-110 group-hover:shadow-[0_0_24px_rgba(0,132,255,0.5)]">
           <AnimatePresence mode="wait">
             {open ? (
               <motion.span key="close" initial={{ rotate: -90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: 90, opacity: 0 }} transition={{ duration: 0.15 }}>
@@ -259,7 +268,7 @@ const LiveChat = () => {
               </motion.span>
             ) : (
               <motion.span key="chat" initial={{ rotate: 90, opacity: 0 }} animate={{ rotate: 0, opacity: 1 }} exit={{ rotate: -90, opacity: 0 }} transition={{ duration: 0.15 }}>
-                <MessageCircle className="h-6 w-6" />
+                <MessengerIcon className="h-7 w-7" />
               </motion.span>
             )}
           </AnimatePresence>
