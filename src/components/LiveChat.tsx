@@ -10,12 +10,44 @@ import QuickReplies from "@/components/chat/QuickReplies";
 import useNotificationSound from "@/components/chat/useNotificationSound";
 
 const getSessionId = () => {
-  let id = sessionStorage.getItem("visitor_session_id");
+  // Use localStorage so the chat session survives page refreshes & browser restarts
+  let id = localStorage.getItem("visitor_session_id");
   if (!id) {
-    id = crypto.randomUUID();
-    sessionStorage.setItem("visitor_session_id", id);
+    // migrate old sessionStorage value if present
+    const legacy = sessionStorage.getItem("visitor_session_id");
+    id = legacy || crypto.randomUUID();
+    localStorage.setItem("visitor_session_id", id);
   }
   return id;
+};
+
+const getStoredName = () => localStorage.getItem("visitor_name") || "";
+const getStoredStarted = () => localStorage.getItem("visitor_chat_started") === "1";
+
+// Smart auto-reply keyword matching
+const getSmartReply = (text: string): string => {
+  const t = text.toLowerCase();
+  if (/\b(hi|hello|hey|hola|salut)\b/.test(t))
+    return "Hi there! 👋 Thanks for reaching out to Emery Collection. How can I help you today?";
+  if (/(price|cost|how much|pricing)/.test(t))
+    return "Our prices are listed on each product page. You can browse our shop here: /shop — would you like a recommendation?";
+  if (/(ship|delivery|deliver|arrive)/.test(t))
+    return "We ship within 2–5 business days 📦. Tracking info is sent to your email once your order is dispatched.";
+  if (/(return|refund|exchange)/.test(t))
+    return "We offer easy returns within 14 days of delivery. Just keep the item unused and in its original packaging 👍";
+  if (/(payment|pay|card|mpesa|paypal|stripe)/.test(t))
+    return "We accept all major cards, PayPal, and mobile money. All payments are securely processed at checkout 🔒";
+  if (/(stock|available|availability|in stock)/.test(t))
+    return "Most items shown on the shop are in stock. If you tell me which product you're interested in, I'll confirm right away!";
+  if (/(size|fit|sizing)/.test(t))
+    return "You can find detailed size guides on each product page. If you share your usual size, I can suggest the best fit 👟";
+  if (/(contact|email|phone|whatsapp|number)/.test(t))
+    return "You can reach us anytime through this chat, or via our Contact page. We usually respond within minutes during business hours.";
+  if (/(thank|thanks|asante)/.test(t))
+    return "You're very welcome! 💙 Let me know if there's anything else I can help with.";
+  if (/(book|order|buy|purchase)/.test(t))
+    return "Great choice! 🎉 Add the item to your cart and proceed to checkout. I'll be here if you need help during the process.";
+  return "Thanks for your message! Our team will get back to you shortly. In the meantime, feel free to ask about our products, shipping, or returns 😊";
 };
 
 interface Message {
