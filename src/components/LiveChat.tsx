@@ -154,6 +154,31 @@ const LiveChat = () => {
     }
   }, [open, messages, conversationId]);
 
+  // Track which visitor messages have already triggered an auto-reply (persisted)
+  const autoRepliedKey = conversationId ? `auto_replied_${conversationId}` : null;
+  const autoRepliedFor = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!autoRepliedKey) return;
+    try {
+      const stored = JSON.parse(localStorage.getItem(autoRepliedKey) || "[]");
+      autoRepliedFor.current = new Set(stored);
+    } catch {
+      autoRepliedFor.current = new Set();
+    }
+  }, [autoRepliedKey]);
+
+  const markAutoReplied = (msgId: string) => {
+    autoRepliedFor.current.add(msgId);
+    if (autoRepliedKey) {
+      localStorage.setItem(autoRepliedKey, JSON.stringify([...autoRepliedFor.current]));
+    }
+  };
+
+  // Realtime: messages + admin-typing broadcast
+  const [adminTyping, setAdminTyping] = useState(false);
+  const adminTypingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     if (!conversationId) return;
 
@@ -185,12 +210,35 @@ const LiveChat = () => {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    // Separate channel for typing broadcasts from the admin panel
+    const typingChannel = supabase
+      .channel(`typing-${conversationId}`, { config: { broadcast: { self: false } } })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const isTyping = !!(payload.payload as any)?.typing;
+        setAdminTyping(isTyping);
+        if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
+        if (isTyping) {
+          // Admin is actively typing — cancel any pending auto-reply
+          if (autoReplyTimer.current) {
+            clearTimeout(autoReplyTimer.current);
+            autoReplyTimer.current = null;
+          }
+          // Auto-clear after 4s of no further typing events
+          adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 4000);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+      supabase.removeChannel(typingChannel);
+      if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
+    };
   }, [conversationId, playSound]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, showTyping]);
+  }, [messages, showTyping, adminTyping]);
 
   const sendMessage = useCallback(async (text?: string) => {
     const content = (text || input).trim();
@@ -209,25 +257,31 @@ const LiveChat = () => {
       content,
       status: "sent",
     }).select("id").single();
-    // Mark as delivered after insert succeeds
-    if (data) {
-      await supabase.from("messages").update({ status: "delivered" }).eq("id", data.id);
+
+    const insertedId = data?.id;
+    if (insertedId) {
+      await supabase.from("messages").update({ status: "delivered" }).eq("id", insertedId);
     }
 
-    // Smart auto-reply: if no admin replies within 2s, send an automated answer
+    // Smart auto-reply: only if this message hasn't already been auto-replied to
+    if (insertedId && autoRepliedFor.current.has(insertedId)) return;
+
     setShowTyping(true);
     autoReplyTimer.current = setTimeout(async () => {
       setShowTyping(false);
       autoReplyTimer.current = null;
+      if (!insertedId || autoRepliedFor.current.has(insertedId)) return;
+      // Mark BEFORE the insert to prevent any race / duplicate
+      markAutoReplied(insertedId);
       await supabase.from("messages").insert({
         conversation_id: conversationId,
         sender_type: "admin",
         content: getSmartReply(content),
       });
     }, 2000);
-  }, [input, conversationId]);
+  }, [input, conversationId, autoRepliedKey]);
 
-  // If a real admin replies, cancel the pending auto-reply
+  // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
   useEffect(() => {
     if (!autoReplyTimer.current) return;
     const last = messages[messages.length - 1];
@@ -235,6 +289,9 @@ const LiveChat = () => {
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
       setShowTyping(false);
+      // Also mark the latest visitor message as auto-replied so it never triggers later
+      const lastVisitor = [...messages].reverse().find((m) => m.sender_type === "visitor");
+      if (lastVisitor) markAutoReplied(lastVisitor.id);
     }
   }, [messages]);
 
