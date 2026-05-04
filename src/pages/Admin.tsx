@@ -954,7 +954,10 @@ const Admin = () => {
                         <Input
                           placeholder="Type a reply..."
                           value={replyInput}
-                          onChange={(e) => setReplyInput(e.target.value)}
+                          onChange={(e) => {
+                            setReplyInput(e.target.value);
+                            chat.broadcastTyping();
+                          }}
                           onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
                           className="text-sm"
                         />
