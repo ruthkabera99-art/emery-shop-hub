@@ -84,12 +84,9 @@ const LiveChat = () => {
   const playSound = useNotificationSound();
   const autoReplyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Persist started state across refreshes — load conversation immediately on mount
+  // Load conversation as soon as the user has started (survives refresh via localStorage)
   useEffect(() => {
     if (!started) return;
-
-  useEffect(() => {
-    if (!open || !started) return;
 
     const init = async () => {
       const { data: existing } = await supabase
@@ -124,7 +121,7 @@ const LiveChat = () => {
       }
     };
     init();
-  }, [open, started]);
+  }, [started]);
 
   useEffect(() => {
     if (!conversationId || hasGreeted || messages.length > 0) return;
