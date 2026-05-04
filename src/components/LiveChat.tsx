@@ -196,6 +196,13 @@ const LiveChat = () => {
     const content = (text || input).trim();
     if (!content || !conversationId) return;
     if (!text) setInput("");
+
+    // Cancel any pending auto-reply (only the latest message should trigger one)
+    if (autoReplyTimer.current) {
+      clearTimeout(autoReplyTimer.current);
+      autoReplyTimer.current = null;
+    }
+
     const { data } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_type: "visitor",
@@ -206,10 +213,37 @@ const LiveChat = () => {
     if (data) {
       await supabase.from("messages").update({ status: "delivered" }).eq("id", data.id);
     }
+
+    // Smart auto-reply: if no admin replies within 2s, send an automated answer
+    setShowTyping(true);
+    autoReplyTimer.current = setTimeout(async () => {
+      setShowTyping(false);
+      autoReplyTimer.current = null;
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_type: "admin",
+        content: getSmartReply(content),
+      });
+    }, 2000);
   }, [input, conversationId]);
 
+  // If a real admin replies, cancel the pending auto-reply
+  useEffect(() => {
+    if (!autoReplyTimer.current) return;
+    const last = messages[messages.length - 1];
+    if (last && last.sender_type === "admin") {
+      clearTimeout(autoReplyTimer.current);
+      autoReplyTimer.current = null;
+      setShowTyping(false);
+    }
+  }, [messages]);
+
   const handleStart = () => {
-    if (name.trim()) setStarted(true);
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    localStorage.setItem("visitor_name", trimmed);
+    localStorage.setItem("visitor_chat_started", "1");
+    setStarted(true);
   };
 
   const showQuickReplies = messages.length <= 1 && started && conversationId;
