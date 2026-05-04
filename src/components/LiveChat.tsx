@@ -74,14 +74,19 @@ const LiveChat = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [conversationId, setConversationId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [started, setStarted] = useState(false);
+  const [name, setName] = useState(getStoredName);
+  const [started, setStarted] = useState(getStoredStarted);
   const [showTyping, setShowTyping] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const sessionId = useRef(getSessionId());
   const playSound = useNotificationSound();
+  const autoReplyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Persist started state across refreshes — load conversation immediately on mount
+  useEffect(() => {
+    if (!started) return;
 
   useEffect(() => {
     if (!open || !started) return;
