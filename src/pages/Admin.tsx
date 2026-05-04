@@ -243,6 +243,31 @@ const useAdminChat = () => {
     });
   };
 
+  // Broadcast "admin is typing" via Supabase Realtime (no DB writes)
+  const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!activeConv) return;
+    const ch = supabase.channel(`typing-${activeConv}`, { config: { broadcast: { self: false } } });
+    ch.subscribe();
+    typingChannelRef.current = ch;
+    return () => {
+      supabase.removeChannel(ch);
+      typingChannelRef.current = null;
+    };
+  }, [activeConv]);
+
+  const broadcastTyping = () => {
+    const ch = typingChannelRef.current;
+    if (!ch || !activeConv) return;
+    ch.send({ type: "broadcast", event: "typing", payload: { typing: true } });
+    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
+    typingDebounceRef.current = setTimeout(() => {
+      ch.send({ type: "broadcast", event: "typing", payload: { typing: false } });
+    }, 2500);
+  };
+
   const closeConversation = async (convId: string) => {
     await supabase
       .from("conversations")
@@ -251,7 +276,7 @@ const useAdminChat = () => {
     if (activeConv === convId) setActiveConv(null);
   };
 
-  return { conversations, messages, activeConv, setActiveConv, sendReply, closeConversation };
+  return { conversations, messages, activeConv, setActiveConv, sendReply, closeConversation, broadcastTyping };
 };
 
 // ── Products Hook (Supabase) ──
@@ -929,7 +954,10 @@ const Admin = () => {
                         <Input
                           placeholder="Type a reply..."
                           value={replyInput}
-                          onChange={(e) => setReplyInput(e.target.value)}
+                          onChange={(e) => {
+                            setReplyInput(e.target.value);
+                            chat.broadcastTyping();
+                          }}
                           onKeyDown={(e) => e.key === "Enter" && handleSendReply()}
                           className="text-sm"
                         />
