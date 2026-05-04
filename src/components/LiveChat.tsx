@@ -370,7 +370,7 @@ const LiveChat = () => {
                       />
                     ))}
 
-                    {showTyping && <TypingIndicator />}
+                    {(showTyping || adminTyping) && <TypingIndicator />}
 
                     {showQuickReplies && !showTyping && (
                       <div className="pt-2">
