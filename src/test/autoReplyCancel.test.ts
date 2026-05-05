@@ -104,4 +104,23 @@ describe("LiveChat auto-reply cancel rules", () => {
     vi.advanceTimersByTime(10);
     expect(h.sentAutoReplies).toHaveLength(0);
   });
+
+  it("multiple rapid admin replies before 2s cancel the auto-reply and never re-trigger it", () => {
+    const h = createChatHarness();
+    h.sendMessage("v1");
+    vi.advanceTimersByTime(300);
+    h.receiveAdminReply("a1");
+    vi.advanceTimersByTime(200);
+    h.receiveAdminReply("a2");
+    vi.advanceTimersByTime(200);
+    h.receiveAdminReply("a3");
+    // Let well past the 2s window elapse
+    vi.advanceTimersByTime(10_000);
+    expect(h.sentAutoReplies).toHaveLength(0);
+
+    // A subsequent admin reply much later must also not resurrect the timer
+    h.receiveAdminReply("a4");
+    vi.advanceTimersByTime(5_000);
+    expect(h.sentAutoReplies).toHaveLength(0);
+  });
 });
