@@ -234,8 +234,8 @@ const LiveChat = () => {
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
-          // Auto-clear after 4s of no further typing events
-          adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 4000);
+          // Auto-clear after 1.8s of no further typing events (smoother updates)
+          adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 1800);
         }
       })
       .subscribe();
