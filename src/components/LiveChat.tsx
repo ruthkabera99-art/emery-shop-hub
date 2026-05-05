@@ -195,6 +195,17 @@ const LiveChat = () => {
           });
           if (newMsg.sender_type === "admin") {
             playSound();
+            // Stronger cancel: any admin reply immediately kills pending auto-reply + typing UI
+            if (autoReplyTimer.current) {
+              clearTimeout(autoReplyTimer.current);
+              autoReplyTimer.current = null;
+            }
+            setShowTyping(false);
+            setAdminTyping(false);
+            if (adminTypingTimeout.current) {
+              clearTimeout(adminTypingTimeout.current);
+              adminTypingTimeout.current = null;
+            }
           }
         }
       )
