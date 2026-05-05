@@ -245,7 +245,8 @@ const useAdminChat = () => {
 
   // Broadcast "admin is typing" via Supabase Realtime (no DB writes)
   const typingChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
-  const typingDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const typingIdleRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastTypingSentRef = useRef<number>(0);
 
   useEffect(() => {
     if (!activeConv) return;
@@ -255,17 +256,25 @@ const useAdminChat = () => {
     return () => {
       supabase.removeChannel(ch);
       typingChannelRef.current = null;
+      if (typingIdleRef.current) clearTimeout(typingIdleRef.current);
     };
   }, [activeConv]);
 
   const broadcastTyping = () => {
     const ch = typingChannelRef.current;
     if (!ch || !activeConv) return;
-    ch.send({ type: "broadcast", event: "typing", payload: { typing: true } });
-    if (typingDebounceRef.current) clearTimeout(typingDebounceRef.current);
-    typingDebounceRef.current = setTimeout(() => {
+    // Throttle "typing: true" broadcasts to once every 600ms for smooth updates
+    const now = Date.now();
+    if (now - lastTypingSentRef.current > 600) {
+      ch.send({ type: "broadcast", event: "typing", payload: { typing: true } });
+      lastTypingSentRef.current = now;
+    }
+    // Reset idle timer — send "typing: false" 1.2s after last keystroke
+    if (typingIdleRef.current) clearTimeout(typingIdleRef.current);
+    typingIdleRef.current = setTimeout(() => {
       ch.send({ type: "broadcast", event: "typing", payload: { typing: false } });
-    }, 2500);
+      lastTypingSentRef.current = 0;
+    }, 1200);
   };
 
   const closeConversation = async (convId: string) => {
