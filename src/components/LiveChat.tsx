@@ -195,6 +195,17 @@ const LiveChat = () => {
           });
           if (newMsg.sender_type === "admin") {
             playSound();
+            // Stronger cancel: any admin reply immediately kills pending auto-reply + typing UI
+            if (autoReplyTimer.current) {
+              clearTimeout(autoReplyTimer.current);
+              autoReplyTimer.current = null;
+            }
+            setShowTyping(false);
+            setAdminTyping(false);
+            if (adminTypingTimeout.current) {
+              clearTimeout(adminTypingTimeout.current);
+              adminTypingTimeout.current = null;
+            }
           }
         }
       )
@@ -223,8 +234,8 @@ const LiveChat = () => {
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
-          // Auto-clear after 4s of no further typing events
-          adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 4000);
+          // Auto-clear after 1.8s of no further typing events (smoother updates)
+          adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 1800);
         }
       })
       .subscribe();
