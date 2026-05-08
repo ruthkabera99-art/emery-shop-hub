@@ -418,12 +418,47 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_or_create_visitor_conversation: {
+        Args: { _session_id: string; _visitor_name?: string }
+        Returns: string
+      }
+      get_visitor_messages: {
+        Args: { _session_id: string }
+        Returns: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          read_at: string | null
+          sender_type: string
+          status: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "messages"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
         Returns: boolean
+      }
+      mark_visitor_admin_messages_read: {
+        Args: { _session_id: string }
+        Returns: undefined
+      }
+      send_visitor_auto_reply: {
+        Args: { _content: string; _session_id: string }
+        Returns: string
+      }
+      send_visitor_message: {
+        Args: { _content: string; _session_id: string }
+        Returns: string
       }
     }
     Enums: {
