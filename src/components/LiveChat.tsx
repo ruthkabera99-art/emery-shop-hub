@@ -113,28 +113,22 @@ const LiveChat = () => {
     setShowTyping(true);
     const timer = setTimeout(async () => {
       setShowTyping(false);
-      await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_type: "admin",
-        content: AUTO_GREETING,
+      await supabase.rpc("send_visitor_auto_reply", {
+        _session_id: sessionId.current,
+        _content: AUTO_GREETING,
       });
     }, 1500);
     return () => clearTimeout(timer);
   }, [conversationId, hasGreeted, messages.length]);
 
-  // Mark admin messages as read when chat is open
+  // Mark admin messages as read when chat is open (via secure RPC)
   useEffect(() => {
     if (!open || !conversationId) return;
-    const unreadAdmin = messages.filter(
+    const hasUnread = messages.some(
       (m) => m.sender_type === "admin" && m.status !== "read" && !m.read_at
     );
-    if (unreadAdmin.length > 0) {
-      const ids = unreadAdmin.map((m) => m.id);
-      supabase
-        .from("messages")
-        .update({ status: "read", read_at: new Date().toISOString(), is_read: true })
-        .in("id", ids)
-        .then();
+    if (hasUnread) {
+      supabase.rpc("mark_visitor_admin_messages_read", { _session_id: sessionId.current }).then();
     }
   }, [open, messages, conversationId]);
 
