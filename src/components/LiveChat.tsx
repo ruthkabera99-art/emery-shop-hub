@@ -89,35 +89,19 @@ const LiveChat = () => {
     if (!started) return;
 
     const init = async () => {
-      const { data: existing } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("visitor_session_id", sessionId.current)
-        .eq("status", "open")
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const { data: convId, error: convErr } = await supabase.rpc("get_or_create_visitor_conversation", {
+        _session_id: sessionId.current,
+        _visitor_name: name || "Visitor",
+      });
+      if (convErr || !convId) return;
+      setConversationId(convId as string);
 
-      let convId: string;
-      if (existing && existing.length > 0) {
-        convId = existing[0].id;
-      } else {
-        const { data: newConv } = await supabase
-          .from("conversations")
-          .insert({ visitor_session_id: sessionId.current, visitor_name: name || "Visitor" })
-          .select("id")
-          .single();
-        convId = newConv!.id;
-      }
-      setConversationId(convId);
-
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: true });
+      const { data: msgs } = await supabase.rpc("get_visitor_messages", {
+        _session_id: sessionId.current,
+      });
       if (msgs) {
-        setMessages(msgs);
-        if (msgs.length > 0) setHasGreeted(true);
+        setMessages(msgs as Message[]);
+        if ((msgs as Message[]).length > 0) setHasGreeted(true);
       }
     };
     init();
