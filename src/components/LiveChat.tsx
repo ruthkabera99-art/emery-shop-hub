@@ -89,35 +89,19 @@ const LiveChat = () => {
     if (!started) return;
 
     const init = async () => {
-      const { data: existing } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("visitor_session_id", sessionId.current)
-        .eq("status", "open")
-        .order("created_at", { ascending: false })
-        .limit(1);
+      const { data: convId, error: convErr } = await supabase.rpc("get_or_create_visitor_conversation", {
+        _session_id: sessionId.current,
+        _visitor_name: name || "Visitor",
+      });
+      if (convErr || !convId) return;
+      setConversationId(convId as string);
 
-      let convId: string;
-      if (existing && existing.length > 0) {
-        convId = existing[0].id;
-      } else {
-        const { data: newConv } = await supabase
-          .from("conversations")
-          .insert({ visitor_session_id: sessionId.current, visitor_name: name || "Visitor" })
-          .select("id")
-          .single();
-        convId = newConv!.id;
-      }
-      setConversationId(convId);
-
-      const { data: msgs } = await supabase
-        .from("messages")
-        .select("*")
-        .eq("conversation_id", convId)
-        .order("created_at", { ascending: true });
+      const { data: msgs } = await supabase.rpc("get_visitor_messages", {
+        _session_id: sessionId.current,
+      });
       if (msgs) {
-        setMessages(msgs);
-        if (msgs.length > 0) setHasGreeted(true);
+        setMessages(msgs as Message[]);
+        if ((msgs as Message[]).length > 0) setHasGreeted(true);
       }
     };
     init();
@@ -129,28 +113,22 @@ const LiveChat = () => {
     setShowTyping(true);
     const timer = setTimeout(async () => {
       setShowTyping(false);
-      await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_type: "admin",
-        content: AUTO_GREETING,
+      await supabase.rpc("send_visitor_auto_reply", {
+        _session_id: sessionId.current,
+        _content: AUTO_GREETING,
       });
     }, 1500);
     return () => clearTimeout(timer);
   }, [conversationId, hasGreeted, messages.length]);
 
-  // Mark admin messages as read when chat is open
+  // Mark admin messages as read when chat is open (via secure RPC)
   useEffect(() => {
     if (!open || !conversationId) return;
-    const unreadAdmin = messages.filter(
+    const hasUnread = messages.some(
       (m) => m.sender_type === "admin" && m.status !== "read" && !m.read_at
     );
-    if (unreadAdmin.length > 0) {
-      const ids = unreadAdmin.map((m) => m.id);
-      supabase
-        .from("messages")
-        .update({ status: "read", read_at: new Date().toISOString(), is_read: true })
-        .in("id", ids)
-        .then();
+    if (hasUnread) {
+      supabase.rpc("mark_visitor_admin_messages_read", { _session_id: sessionId.current }).then();
     }
   }, [open, messages, conversationId]);
 
@@ -179,47 +157,41 @@ const LiveChat = () => {
   const [adminTyping, setAdminTyping] = useState(false);
   const adminTypingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Realtime: postgres_changes is RLS-bound (visitors aren't authenticated),
+  // so poll for new messages while the conversation is open.
   useEffect(() => {
     if (!conversationId) return;
 
-    const channel = supabase
-      .channel(`chat-${conversationId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const newMsg = payload.new as Message;
-          setMessages((prev) => {
-            if (prev.find((m) => m.id === newMsg.id)) return prev;
-            return [...prev, newMsg];
-          });
-          if (newMsg.sender_type === "admin") {
-            playSound();
-            // Stronger cancel: any admin reply immediately kills pending auto-reply + typing UI
-            if (autoReplyTimer.current) {
-              clearTimeout(autoReplyTimer.current);
-              autoReplyTimer.current = null;
-            }
-            setShowTyping(false);
-            setAdminTyping(false);
-            if (adminTypingTimeout.current) {
-              clearTimeout(adminTypingTimeout.current);
-              adminTypingTimeout.current = null;
-            }
+    let cancelled = false;
+    const poll = async () => {
+      const { data } = await supabase.rpc("get_visitor_messages", {
+        _session_id: sessionId.current,
+      });
+      if (cancelled || !data) return;
+      const fresh = data as Message[];
+      setMessages((prev) => {
+        const prevIds = new Set(prev.map((m) => m.id));
+        const hasNewAdmin = fresh.some(
+          (m) => !prevIds.has(m.id) && m.sender_type === "admin"
+        );
+        if (hasNewAdmin) {
+          playSound();
+          if (autoReplyTimer.current) {
+            clearTimeout(autoReplyTimer.current);
+            autoReplyTimer.current = null;
+          }
+          setShowTyping(false);
+          setAdminTyping(false);
+          if (adminTypingTimeout.current) {
+            clearTimeout(adminTypingTimeout.current);
+            adminTypingTimeout.current = null;
           }
         }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
-        (payload) => {
-          const updated = payload.new as Message;
-          setMessages((prev) =>
-            prev.map((m) => (m.id === updated.id ? { ...m, ...updated } : m))
-          );
-        }
-      )
-      .subscribe();
+        // Merge by id, preserving order from server
+        return fresh;
+      });
+    };
+    const interval = setInterval(poll, 2500);
 
     // Separate channel for typing broadcasts from the admin panel
     const typingChannel = supabase
@@ -229,19 +201,18 @@ const LiveChat = () => {
         setAdminTyping(isTyping);
         if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
         if (isTyping) {
-          // Admin is actively typing — cancel any pending auto-reply
           if (autoReplyTimer.current) {
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
-          // Auto-clear after 1.8s of no further typing events (smoother updates)
           adminTypingTimeout.current = setTimeout(() => setAdminTyping(false), 1800);
         }
       })
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      cancelled = true;
+      clearInterval(interval);
       supabase.removeChannel(typingChannel);
       if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
     };
@@ -256,38 +227,27 @@ const LiveChat = () => {
     if (!content || !conversationId) return;
     if (!text) setInput("");
 
-    // Cancel any pending auto-reply (only the latest message should trigger one)
     if (autoReplyTimer.current) {
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
     }
 
-    const { data } = await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      sender_type: "visitor",
-      content,
-      status: "sent",
-    }).select("id").single();
+    const { data: insertedId } = await supabase.rpc("send_visitor_message", {
+      _session_id: sessionId.current,
+      _content: content,
+    });
 
-    const insertedId = data?.id;
-    if (insertedId) {
-      await supabase.from("messages").update({ status: "delivered" }).eq("id", insertedId);
-    }
-
-    // Smart auto-reply: only if this message hasn't already been auto-replied to
-    if (insertedId && autoRepliedFor.current.has(insertedId)) return;
+    if (insertedId && autoRepliedFor.current.has(insertedId as string)) return;
 
     setShowTyping(true);
     autoReplyTimer.current = setTimeout(async () => {
       setShowTyping(false);
       autoReplyTimer.current = null;
-      if (!insertedId || autoRepliedFor.current.has(insertedId)) return;
-      // Mark BEFORE the insert to prevent any race / duplicate
-      markAutoReplied(insertedId);
-      await supabase.from("messages").insert({
-        conversation_id: conversationId,
-        sender_type: "admin",
-        content: getSmartReply(content),
+      if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
+      markAutoReplied(insertedId as string);
+      await supabase.rpc("send_visitor_auto_reply", {
+        _session_id: sessionId.current,
+        _content: getSmartReply(content),
       });
     }, 2000);
   }, [input, conversationId, autoRepliedKey]);
