@@ -157,6 +157,10 @@ const LiveChat = () => {
   const [adminTyping, setAdminTyping] = useState(false);
   const adminTypingTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Timestamp (ms) when the current pending auto-reply timer was scheduled.
+  // Used to ignore older admin messages (e.g. the auto-greeting) arriving via polling.
+  const autoReplyStartedAt = useRef<number>(0);
+
   // Realtime: postgres_changes is RLS-bound (visitors aren't authenticated),
   // so poll for new messages while the conversation is open.
   useEffect(() => {
@@ -171,23 +175,30 @@ const LiveChat = () => {
       const fresh = data as Message[];
       setMessages((prev) => {
         const prevIds = new Set(prev.map((m) => m.id));
-        const hasNewAdmin = fresh.some(
+        const newAdminMsgs = fresh.filter(
           (m) => !prevIds.has(m.id) && m.sender_type === "admin"
         );
-        if (hasNewAdmin) {
+        if (newAdminMsgs.length > 0) {
           playSound();
+          // Only cancel a pending auto-reply if the new admin message was
+          // created AFTER we scheduled it (i.e. a real reply, not the
+          // earlier auto-greeting picked up late by polling).
           if (autoReplyTimer.current) {
-            clearTimeout(autoReplyTimer.current);
-            autoReplyTimer.current = null;
+            const cancelsTimer = newAdminMsgs.some(
+              (m) => new Date(m.created_at).getTime() > autoReplyStartedAt.current
+            );
+            if (cancelsTimer) {
+              clearTimeout(autoReplyTimer.current);
+              autoReplyTimer.current = null;
+              setShowTyping(false);
+            }
           }
-          setShowTyping(false);
           setAdminTyping(false);
           if (adminTypingTimeout.current) {
             clearTimeout(adminTypingTimeout.current);
             adminTypingTimeout.current = null;
           }
         }
-        // Merge by id, preserving order from server
         return fresh;
       });
     };
@@ -240,6 +251,7 @@ const LiveChat = () => {
     if (insertedId && autoRepliedFor.current.has(insertedId as string)) return;
 
     setShowTyping(true);
+    autoReplyStartedAt.current = Date.now();
     autoReplyTimer.current = setTimeout(async () => {
       setShowTyping(false);
       autoReplyTimer.current = null;
@@ -256,11 +268,14 @@ const LiveChat = () => {
   useEffect(() => {
     if (!autoReplyTimer.current) return;
     const last = messages[messages.length - 1];
-    if (last && last.sender_type === "admin") {
+    if (
+      last &&
+      last.sender_type === "admin" &&
+      new Date(last.created_at).getTime() > autoReplyStartedAt.current
+    ) {
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
       setShowTyping(false);
-      // Also mark the latest visitor message as auto-replied so it never triggers later
       const lastVisitor = [...messages].reverse().find((m) => m.sender_type === "visitor");
       if (lastVisitor) markAutoReplied(lastVisitor.id);
     }
