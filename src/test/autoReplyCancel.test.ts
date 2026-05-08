@@ -63,6 +63,20 @@ describe("LiveChat auto-reply cancel rules", () => {
     expect(h.sentAutoReplies).toEqual(["v1"]);
   });
 
+  it("still triggers the auto-reply after 2s when no admin replies or manual visitor messages arrive", () => {
+    const h = createChatHarness();
+    h.sendMessage("v1");
+    // No admin replies and no new visitor messages — timer runs uninterrupted
+    vi.advanceTimersByTime(1999);
+    expect(h.sentAutoReplies).toHaveLength(0);
+    // Cross the 2-second boundary
+    vi.advanceTimersByTime(1);
+    expect(h.sentAutoReplies).toEqual(["v1"]);
+    // Ensure it never fires again for the same message
+    vi.advanceTimersByTime(10_000);
+    expect(h.sentAutoReplies).toEqual(["v1"]);
+  });
+
   it("cancels the pending auto-reply when an admin reply arrives within 2s", () => {
     const h = createChatHarness();
     h.sendMessage("v1");
