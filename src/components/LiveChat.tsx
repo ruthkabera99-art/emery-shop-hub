@@ -8,6 +8,7 @@ import ChatHeader from "@/components/chat/ChatHeader";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import QuickReplies from "@/components/chat/QuickReplies";
 import useNotificationSound from "@/components/chat/useNotificationSound";
+import { useChatConfig } from "@/hooks/useSiteSettings";
 
 const getSessionId = () => {
   // Use localStorage so the chat session survives page refreshes & browser restarts
