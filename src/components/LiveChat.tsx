@@ -224,6 +224,9 @@ const LiveChat = () => {
         if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
         if (isTyping) {
           if (autoReplyTimer.current) {
+            console.debug("[LiveChat] cancelling auto-reply timer (admin is typing)", {
+              t: new Date().toISOString(),
+            });
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
