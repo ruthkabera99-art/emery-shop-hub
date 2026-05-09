@@ -42,6 +42,7 @@ import CustomersManager from "@/components/admin/CustomersManager";
 import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
 // ── Types ──
 interface Visitor {
