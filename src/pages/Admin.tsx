@@ -535,6 +535,7 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const adminReviews = useAdminReviews();
   const adminSettings = useAdminSettings();
+  const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
 
   // Auth check
