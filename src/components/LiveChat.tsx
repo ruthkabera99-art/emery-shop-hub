@@ -184,18 +184,24 @@ const LiveChat = () => {
           (m) => !prevIds.has(m.id) && m.sender_type === "admin"
         );
         if (newAdminMsgs.length > 0) {
+          console.debug("[LiveChat] poll: new admin messages", {
+            t: new Date().toISOString(),
+            ids: newAdminMsgs.map((m) => ({ id: m.id, created_at: m.created_at })),
+            autoReplyStartedAt: autoReplyStartedAt.current,
+            timerPending: !!autoReplyTimer.current,
+          });
           playSound();
-          // Only cancel a pending auto-reply if the new admin message was
-          // created AFTER we scheduled it (i.e. a real reply, not the
-          // earlier auto-greeting picked up late by polling).
           if (autoReplyTimer.current) {
             const cancelsTimer = newAdminMsgs.some(
               (m) => new Date(m.created_at).getTime() > autoReplyStartedAt.current
             );
             if (cancelsTimer) {
+              console.debug("[LiveChat] cancelling auto-reply timer (real admin reply via polling)");
               clearTimeout(autoReplyTimer.current);
               autoReplyTimer.current = null;
               setShowTyping(false);
+            } else {
+              console.debug("[LiveChat] keeping auto-reply timer (admin msgs are older than timer start)");
             }
           }
           setAdminTyping(false);
