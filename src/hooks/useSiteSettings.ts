@@ -255,6 +255,60 @@ export function useAdminHomepage() {
   return { config, setConfig, loading, save };
 }
 
+export interface ChatConfig {
+  autoReplyDelayMs: number;
+}
+
+export const defaultChatConfig: ChatConfig = {
+  autoReplyDelayMs: 2000,
+};
+
+export function useChatConfig() {
+  const [config, setConfig] = useState<ChatConfig>(defaultChatConfig);
+  const [loaded, setLoaded] = useState(false);
+
+  useEffect(() => {
+    loadSetting("chat_config", defaultChatConfig).then((c) => {
+      setConfig(c);
+      setLoaded(true);
+    });
+    const channel = supabase
+      .channel("chat-config-realtime")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "store_settings", filter: "key=eq.chat_config" },
+        (payload: any) => {
+          try {
+            setConfig(JSON.parse(payload.new.value));
+          } catch { /* ignore */ }
+        }
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, []);
+
+  return { config, loaded };
+}
+
+export function useAdminChatConfig() {
+  const [config, setConfig] = useState<ChatConfig>(defaultChatConfig);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadSetting("chat_config", defaultChatConfig).then((c) => {
+      setConfig(c);
+      setLoading(false);
+    });
+  }, []);
+
+  const save = async (c: ChatConfig) => {
+    await saveSetting("chat_config", c);
+    setConfig(c);
+  };
+
+  return { config, setConfig, loading, save };
+}
+
 export function useAdminHero() {
   const [config, setConfig] = useState<HeroConfig>(defaultHeroConfig);
   const [loading, setLoading] = useState(true);
