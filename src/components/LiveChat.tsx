@@ -204,12 +204,16 @@ const LiveChat = () => {
           (m) => !prevIds.has(m.id) && m.sender_type === "admin"
         );
         if (newAdminMsgs.length > 0) {
+          const idsDetail = newAdminMsgs
+            .map((m) => `${m.id.slice(0, 6)}@${new Date(m.created_at).toLocaleTimeString()}`)
+            .join(", ");
           console.debug("[LiveChat] poll: new admin messages", {
             t: new Date().toISOString(),
             ids: newAdminMsgs.map((m) => ({ id: m.id, created_at: m.created_at })),
             autoReplyStartedAt: autoReplyStartedAt.current,
             timerPending: !!autoReplyTimer.current,
           });
+          logDebug("admin-msg", `Admin msg via poll (${newAdminMsgs.length})`, idsDetail);
           playSound();
           if (autoReplyTimer.current) {
             const cancelsTimer = newAdminMsgs.some(
@@ -217,11 +221,13 @@ const LiveChat = () => {
             );
             if (cancelsTimer) {
               console.debug("[LiveChat] cancelling auto-reply timer (real admin reply via polling)");
+              logDebug("timer-cancel", "Cancelled by admin reply", "Admin msg created AFTER timer start");
               clearTimeout(autoReplyTimer.current);
               autoReplyTimer.current = null;
               setShowTyping(false);
             } else {
               console.debug("[LiveChat] keeping auto-reply timer (admin msgs are older than timer start)");
+              logDebug("info", "Kept timer", "Admin msg older than timer start (late greeting)");
             }
           }
           setAdminTyping(false);
