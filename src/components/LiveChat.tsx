@@ -84,6 +84,10 @@ const LiveChat = () => {
   const sessionId = useRef(getSessionId());
   const playSound = useNotificationSound();
   const autoReplyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { config: chatConfig } = useChatConfig();
+  const autoReplyDelayMs = chatConfig.autoReplyDelayMs;
+  const autoReplyDelayRef = useRef(autoReplyDelayMs);
+  useEffect(() => { autoReplyDelayRef.current = autoReplyDelayMs; }, [autoReplyDelayMs]);
 
   // Load conversation as soon as the user has started (survives refresh via localStorage)
   useEffect(() => {
