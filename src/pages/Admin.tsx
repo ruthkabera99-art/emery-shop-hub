@@ -42,6 +42,7 @@ import CustomersManager from "@/components/admin/CustomersManager";
 import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
 import { useAdminRole } from "@/hooks/useAdminRole";
+import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
 // ── Types ──
 interface Visitor {
@@ -534,6 +535,7 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const adminReviews = useAdminReviews();
   const adminSettings = useAdminSettings();
+  const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
 
   // Auth check
@@ -1255,6 +1257,43 @@ const Admin = () => {
                   </div>
                   <Button onClick={() => adminSettings.saveSettings(adminSettings.settings)} className="bg-accent text-accent-foreground hover:bg-accent/90">
                     <Save className="h-4 w-4 mr-1" /> Save Stripe Settings
+                  </Button>
+                </div>
+              </div>
+
+              {/* Live Chat Configuration */}
+              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-border">
+                <h3 className="font-display text-lg font-bold mb-1 flex items-center gap-2">
+                  <MessageSquare className="h-5 w-5 text-primary" /> Live Chat Configuration
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4">
+                  Control how long the chat waits before sending an automated reply to a visitor message.
+                </p>
+                <div className="space-y-4">
+                  <div>
+                    <Label className="mb-1.5 block">Auto-reply delay (seconds)</Label>
+                    <Input
+                      type="number"
+                      min={0}
+                      step={0.1}
+                      value={(chatConfigAdmin.config.autoReplyDelayMs / 1000).toString()}
+                      onChange={(e) => {
+                        const secs = parseFloat(e.target.value);
+                        const ms = isNaN(secs) ? 0 : Math.max(0, Math.round(secs * 1000));
+                        chatConfigAdmin.setConfig({ ...chatConfigAdmin.config, autoReplyDelayMs: ms });
+                      }}
+                      placeholder="2"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Default: 2 seconds. Set to 0 to reply instantly. If an admin replies first, the auto-reply is cancelled.
+                    </p>
+                  </div>
+                  <Button
+                    onClick={() => chatConfigAdmin.save(chatConfigAdmin.config)}
+                    disabled={chatConfigAdmin.loading}
+                    className="bg-accent text-accent-foreground hover:bg-accent/90"
+                  >
+                    <Save className="h-4 w-4 mr-1" /> Save Chat Settings
                   </Button>
                 </div>
               </div>

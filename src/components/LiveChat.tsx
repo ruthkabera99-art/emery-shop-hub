@@ -8,6 +8,7 @@ import ChatHeader from "@/components/chat/ChatHeader";
 import TypingIndicator from "@/components/chat/TypingIndicator";
 import QuickReplies from "@/components/chat/QuickReplies";
 import useNotificationSound from "@/components/chat/useNotificationSound";
+import { useChatConfig } from "@/hooks/useSiteSettings";
 
 const getSessionId = () => {
   // Use localStorage so the chat session survives page refreshes & browser restarts
@@ -83,6 +84,10 @@ const LiveChat = () => {
   const sessionId = useRef(getSessionId());
   const playSound = useNotificationSound();
   const autoReplyTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { config: chatConfig } = useChatConfig();
+  const autoReplyDelayMs = chatConfig.autoReplyDelayMs;
+  const autoReplyDelayRef = useRef(autoReplyDelayMs);
+  useEffect(() => { autoReplyDelayRef.current = autoReplyDelayMs; }, [autoReplyDelayMs]);
 
   // Load conversation as soon as the user has started (survives refresh via localStorage)
   useEffect(() => {
@@ -261,7 +266,7 @@ const LiveChat = () => {
         _session_id: sessionId.current,
         _content: getSmartReply(content),
       });
-    }, 2000);
+    }, autoReplyDelayRef.current);
   }, [input, conversationId, autoRepliedKey]);
 
   // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
