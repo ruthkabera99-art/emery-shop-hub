@@ -158,3 +158,92 @@ describe("LiveChat auto-reply cancel rules", () => {
     expect(h.sentAutoReplies).toHaveLength(0);
   });
 });
+
+/**
+ * Harness mirroring the timestamp-aware cancel rule used in LiveChat.tsx:
+ * polling delivers admin messages with `created_at`. The pending auto-reply
+ * timer is cancelled ONLY if the admin message was created AFTER the timer
+ * was scheduled (autoReplyStartedAt). Older admin messages (e.g. the auto-
+ * greeting that was inserted before the visitor's first message but only
+ * surfaced later via polling) must NOT cancel the timer.
+ */
+function createTimestampAwareHarness() {
+  const autoReplyTimer: { current: ReturnType<typeof setTimeout> | null } = { current: null };
+  let autoReplyStartedAt = 0;
+  const sentAutoReplies: string[] = [];
+  const seenIds = new Set<string>();
+
+  const sendMessage = (visitorMsgId: string) => {
+    if (autoReplyTimer.current) {
+      clearTimeout(autoReplyTimer.current);
+      autoReplyTimer.current = null;
+    }
+    autoReplyStartedAt = Date.now();
+    autoReplyTimer.current = setTimeout(() => {
+      autoReplyTimer.current = null;
+      sentAutoReplies.push(visitorMsgId);
+    }, 2000);
+  };
+
+  // Simulates polling delivering an admin message with a real created_at
+  const pollAdminMessage = (id: string, createdAtMs: number) => {
+    if (seenIds.has(id)) return;
+    seenIds.add(id);
+    if (autoReplyTimer.current && createdAtMs > autoReplyStartedAt) {
+      clearTimeout(autoReplyTimer.current);
+      autoReplyTimer.current = null;
+    }
+  };
+
+  return { sendMessage, pollAdminMessage, sentAutoReplies };
+}
+
+describe("LiveChat auto-reply: late auto-greeting via polling", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  it("auto-reply still fires exactly 2s after the visitor's first message even when the admin auto-greeting arrives late via polling", () => {
+    const h = createTimestampAwareHarness();
+
+    // T=0: conversation created, server inserts the auto-greeting (admin msg)
+    // BEFORE the visitor sends their first message.
+    vi.setSystemTime(new Date(0));
+    const greetingCreatedAtMs = Date.now(); // 0
+
+    // T=3000ms: visitor finally types and sends their first message.
+    vi.advanceTimersByTime(3000);
+    h.sendMessage("v1"); // schedules timer with autoReplyStartedAt = 3000
+
+    // T=3500ms: polling tick finally surfaces the OLD auto-greeting.
+    vi.advanceTimersByTime(500);
+    h.pollAdminMessage("greeting", greetingCreatedAtMs); // created_at (0) < startedAt (3000)
+
+    // The late greeting must NOT cancel the timer.
+    // Auto-reply should fire exactly 2s after sendMessage (T=5000ms).
+    vi.advanceTimersByTime(1499); // total 1999ms since send
+    expect(h.sentAutoReplies).toHaveLength(0);
+    vi.advanceTimersByTime(1); // total 2000ms since send
+    expect(h.sentAutoReplies).toEqual(["v1"]);
+  });
+
+  it("a real admin reply (created after the timer started) still cancels even when an older greeting also surfaces", () => {
+    const h = createTimestampAwareHarness();
+
+    vi.setSystemTime(new Date(0));
+    const greetingCreatedAtMs = Date.now();
+
+    vi.advanceTimersByTime(3000);
+    h.sendMessage("v1");
+
+    // Late greeting surfaces (must be ignored)
+    vi.advanceTimersByTime(200);
+    h.pollAdminMessage("greeting", greetingCreatedAtMs);
+
+    // Real admin reply created AFTER timer started
+    vi.advanceTimersByTime(300);
+    h.pollAdminMessage("real", Date.now()); // created_at = 3500 > startedAt 3000
+
+    vi.advanceTimersByTime(5000);
+    expect(h.sentAutoReplies).toHaveLength(0);
+  });
+});
