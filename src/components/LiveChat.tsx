@@ -89,6 +89,26 @@ const LiveChat = () => {
   const autoReplyDelayRef = useRef(autoReplyDelayMs);
   useEffect(() => { autoReplyDelayRef.current = autoReplyDelayMs; }, [autoReplyDelayMs]);
 
+  // ── Debug panel ──
+  type DebugEvent = {
+    id: number;
+    t: number; // ms timestamp
+    kind: "timer-start" | "timer-fired" | "timer-cancel" | "admin-msg" | "visitor-msg" | "info";
+    label: string;
+    detail?: string;
+  };
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
+  const debugIdRef = useRef(0);
+  const logDebug = useCallback((kind: DebugEvent["kind"], label: string, detail?: string) => {
+    setDebugEvents((prev) => {
+      const next = [...prev, { id: ++debugIdRef.current, t: Date.now(), kind, label, detail }];
+      return next.length > 80 ? next.slice(-80) : next;
+    });
+  }, []);
+  const clearDebug = () => setDebugEvents([]);
+
+
   // Load conversation as soon as the user has started (survives refresh via localStorage)
   useEffect(() => {
     if (!started) return;
@@ -184,12 +204,16 @@ const LiveChat = () => {
           (m) => !prevIds.has(m.id) && m.sender_type === "admin"
         );
         if (newAdminMsgs.length > 0) {
+          const idsDetail = newAdminMsgs
+            .map((m) => `${m.id.slice(0, 6)}@${new Date(m.created_at).toLocaleTimeString()}`)
+            .join(", ");
           console.debug("[LiveChat] poll: new admin messages", {
             t: new Date().toISOString(),
             ids: newAdminMsgs.map((m) => ({ id: m.id, created_at: m.created_at })),
             autoReplyStartedAt: autoReplyStartedAt.current,
             timerPending: !!autoReplyTimer.current,
           });
+          logDebug("admin-msg", `Admin msg via poll (${newAdminMsgs.length})`, idsDetail);
           playSound();
           if (autoReplyTimer.current) {
             const cancelsTimer = newAdminMsgs.some(
@@ -197,11 +221,13 @@ const LiveChat = () => {
             );
             if (cancelsTimer) {
               console.debug("[LiveChat] cancelling auto-reply timer (real admin reply via polling)");
+              logDebug("timer-cancel", "Cancelled by admin reply", "Admin msg created AFTER timer start");
               clearTimeout(autoReplyTimer.current);
               autoReplyTimer.current = null;
               setShowTyping(false);
             } else {
               console.debug("[LiveChat] keeping auto-reply timer (admin msgs are older than timer start)");
+              logDebug("info", "Kept timer", "Admin msg older than timer start (late greeting)");
             }
           }
           setAdminTyping(false);
@@ -227,6 +253,7 @@ const LiveChat = () => {
             console.debug("[LiveChat] cancelling auto-reply timer (admin is typing)", {
               t: new Date().toISOString(),
             });
+            logDebug("timer-cancel", "Cancelled by admin typing", "Admin sent typing broadcast");
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
@@ -256,6 +283,7 @@ const LiveChat = () => {
       console.debug("[LiveChat] cancelling existing auto-reply timer (visitor sent new message)", {
         t: new Date().toISOString(),
       });
+      logDebug("timer-cancel", "Cancelled by new visitor msg", "Visitor sent another message");
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
     }
@@ -264,6 +292,8 @@ const LiveChat = () => {
       _session_id: sessionId.current,
       _content: content,
     });
+
+    logDebug("visitor-msg", "Visitor message sent", `id=${(insertedId as string)?.slice(0, 6) ?? "?"} "${content.slice(0, 30)}"`);
 
     if (insertedId && autoRepliedFor.current.has(insertedId as string)) return;
 
@@ -275,11 +305,13 @@ const LiveChat = () => {
       delayMs: autoReplyDelayRef.current,
       autoReplyStartedAt: autoReplyStartedAt.current,
     });
+    logDebug("timer-start", `Timer started (${autoReplyDelayRef.current}ms)`, `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
     autoReplyTimer.current = setTimeout(async () => {
       console.debug("[LiveChat] auto-reply timer FIRED", {
         t: new Date().toISOString(),
         visitorMsgId: insertedId,
       });
+      logDebug("timer-fired", "Auto-reply FIRED", `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
       setShowTyping(false);
       autoReplyTimer.current = null;
       if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
@@ -289,7 +321,7 @@ const LiveChat = () => {
         _content: getSmartReply(content),
       });
     }, autoReplyDelayRef.current);
-  }, [input, conversationId, autoRepliedKey]);
+  }, [input, conversationId, autoRepliedKey, logDebug]);
 
   // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
   useEffect(() => {
@@ -305,6 +337,7 @@ const LiveChat = () => {
         adminMsgCreatedAt: last.created_at,
         autoReplyStartedAt: autoReplyStartedAt.current,
       });
+      logDebug("timer-cancel", "Cancelled by admin reply", `Admin created_at=${new Date(last.created_at).toLocaleTimeString()} > startedAt`);
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
       setShowTyping(false);
@@ -397,6 +430,59 @@ const LiveChat = () => {
                     )}
 
                     <div ref={bottomRef} />
+                  </div>
+
+
+                  {/* Debug timeline panel */}
+                  <div className="border-t border-border bg-muted/40">
+                    <button
+                      onClick={() => setDebugOpen((v) => !v)}
+                      className="w-full px-3 py-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground hover:text-foreground flex items-center justify-between"
+                    >
+                      <span>Debug timeline ({debugEvents.length})</span>
+                      <span className="flex items-center gap-2">
+                        {debugOpen && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); clearDebug(); }}
+                            className="text-[10px] underline hover:text-destructive"
+                          >
+                            clear
+                          </span>
+                        )}
+                        <span>{debugOpen ? "▼" : "▲"}</span>
+                      </span>
+                    </button>
+                    {debugOpen && (
+                      <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-0.5 font-mono text-[10px] leading-tight">
+                        {debugEvents.length === 0 ? (
+                          <p className="text-muted-foreground italic py-1">No events yet. Send a message to see the auto-reply timer.</p>
+                        ) : (
+                          debugEvents.map((ev) => {
+                            const color =
+                              ev.kind === "timer-start" ? "text-blue-600" :
+                              ev.kind === "timer-fired" ? "text-green-600" :
+                              ev.kind === "timer-cancel" ? "text-destructive" :
+                              ev.kind === "admin-msg" ? "text-purple-600" :
+                              ev.kind === "visitor-msg" ? "text-foreground" :
+                              "text-muted-foreground";
+                            const time = new Date(ev.t).toLocaleTimeString([], { hour12: false }) +
+                              "." + String(ev.t % 1000).padStart(3, "0");
+                            return (
+                              <div key={ev.id} className="flex gap-2">
+                                <span className="text-muted-foreground shrink-0">{time}</span>
+                                <span className={`${color} shrink-0`}>[{ev.kind}]</span>
+                                <span className="truncate">
+                                  {ev.label}
+                                  {ev.detail ? <span className="text-muted-foreground"> — {ev.detail}</span> : null}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   {/* Messenger-style input bar */}
