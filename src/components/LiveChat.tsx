@@ -253,6 +253,7 @@ const LiveChat = () => {
             console.debug("[LiveChat] cancelling auto-reply timer (admin is typing)", {
               t: new Date().toISOString(),
             });
+            logDebug("timer-cancel", "Cancelled by admin typing", "Admin sent typing broadcast");
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
