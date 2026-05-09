@@ -266,7 +266,7 @@ const LiveChat = () => {
         _session_id: sessionId.current,
         _content: getSmartReply(content),
       });
-    }, 2000);
+    }, autoReplyDelayRef.current);
   }, [input, conversationId, autoRepliedKey]);
 
   // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
