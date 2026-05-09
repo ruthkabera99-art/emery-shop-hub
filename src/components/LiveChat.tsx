@@ -89,6 +89,26 @@ const LiveChat = () => {
   const autoReplyDelayRef = useRef(autoReplyDelayMs);
   useEffect(() => { autoReplyDelayRef.current = autoReplyDelayMs; }, [autoReplyDelayMs]);
 
+  // ── Debug panel ──
+  type DebugEvent = {
+    id: number;
+    t: number; // ms timestamp
+    kind: "timer-start" | "timer-fired" | "timer-cancel" | "admin-msg" | "visitor-msg" | "info";
+    label: string;
+    detail?: string;
+  };
+  const [debugOpen, setDebugOpen] = useState(false);
+  const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
+  const debugIdRef = useRef(0);
+  const logDebug = useCallback((kind: DebugEvent["kind"], label: string, detail?: string) => {
+    setDebugEvents((prev) => {
+      const next = [...prev, { id: ++debugIdRef.current, t: Date.now(), kind, label, detail }];
+      return next.length > 80 ? next.slice(-80) : next;
+    });
+  }, []);
+  const clearDebug = () => setDebugEvents([]);
+
+
   // Load conversation as soon as the user has started (survives refresh via localStorage)
   useEffect(() => {
     if (!started) return;
