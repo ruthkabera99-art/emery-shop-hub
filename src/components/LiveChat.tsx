@@ -432,6 +432,59 @@ const LiveChat = () => {
                     <div ref={bottomRef} />
                   </div>
 
+
+                  {/* Debug timeline panel */}
+                  <div className="border-t border-border bg-muted/40">
+                    <button
+                      onClick={() => setDebugOpen((v) => !v)}
+                      className="w-full px-3 py-1.5 text-[10px] uppercase tracking-wider font-semibold text-muted-foreground hover:text-foreground flex items-center justify-between"
+                    >
+                      <span>Debug timeline ({debugEvents.length})</span>
+                      <span className="flex items-center gap-2">
+                        {debugOpen && (
+                          <span
+                            role="button"
+                            tabIndex={0}
+                            onClick={(e) => { e.stopPropagation(); clearDebug(); }}
+                            className="text-[10px] underline hover:text-destructive"
+                          >
+                            clear
+                          </span>
+                        )}
+                        <span>{debugOpen ? "▼" : "▲"}</span>
+                      </span>
+                    </button>
+                    {debugOpen && (
+                      <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-0.5 font-mono text-[10px] leading-tight">
+                        {debugEvents.length === 0 ? (
+                          <p className="text-muted-foreground italic py-1">No events yet. Send a message to see the auto-reply timer.</p>
+                        ) : (
+                          debugEvents.map((ev) => {
+                            const color =
+                              ev.kind === "timer-start" ? "text-blue-600" :
+                              ev.kind === "timer-fired" ? "text-green-600" :
+                              ev.kind === "timer-cancel" ? "text-destructive" :
+                              ev.kind === "admin-msg" ? "text-purple-600" :
+                              ev.kind === "visitor-msg" ? "text-foreground" :
+                              "text-muted-foreground";
+                            const time = new Date(ev.t).toLocaleTimeString([], { hour12: false }) +
+                              "." + String(ev.t % 1000).padStart(3, "0");
+                            return (
+                              <div key={ev.id} className="flex gap-2">
+                                <span className="text-muted-foreground shrink-0">{time}</span>
+                                <span className={`${color} shrink-0`}>[{ev.kind}]</span>
+                                <span className="truncate">
+                                  {ev.label}
+                                  {ev.detail ? <span className="text-muted-foreground"> — {ev.detail}</span> : null}
+                                </span>
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
+                    )}
+                  </div>
+
                   {/* Messenger-style input bar */}
                   <div className="p-2 border-t border-border bg-card flex gap-2 items-center">
                     <Input
