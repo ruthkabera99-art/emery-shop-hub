@@ -337,6 +337,7 @@ const LiveChat = () => {
         adminMsgCreatedAt: last.created_at,
         autoReplyStartedAt: autoReplyStartedAt.current,
       });
+      logDebug("timer-cancel", "Cancelled by admin reply", `Admin created_at=${new Date(last.created_at).toLocaleTimeString()} > startedAt`);
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
       setShowTyping(false);
