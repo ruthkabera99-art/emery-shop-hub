@@ -184,18 +184,24 @@ const LiveChat = () => {
           (m) => !prevIds.has(m.id) && m.sender_type === "admin"
         );
         if (newAdminMsgs.length > 0) {
+          console.debug("[LiveChat] poll: new admin messages", {
+            t: new Date().toISOString(),
+            ids: newAdminMsgs.map((m) => ({ id: m.id, created_at: m.created_at })),
+            autoReplyStartedAt: autoReplyStartedAt.current,
+            timerPending: !!autoReplyTimer.current,
+          });
           playSound();
-          // Only cancel a pending auto-reply if the new admin message was
-          // created AFTER we scheduled it (i.e. a real reply, not the
-          // earlier auto-greeting picked up late by polling).
           if (autoReplyTimer.current) {
             const cancelsTimer = newAdminMsgs.some(
               (m) => new Date(m.created_at).getTime() > autoReplyStartedAt.current
             );
             if (cancelsTimer) {
+              console.debug("[LiveChat] cancelling auto-reply timer (real admin reply via polling)");
               clearTimeout(autoReplyTimer.current);
               autoReplyTimer.current = null;
               setShowTyping(false);
+            } else {
+              console.debug("[LiveChat] keeping auto-reply timer (admin msgs are older than timer start)");
             }
           }
           setAdminTyping(false);
@@ -218,6 +224,9 @@ const LiveChat = () => {
         if (adminTypingTimeout.current) clearTimeout(adminTypingTimeout.current);
         if (isTyping) {
           if (autoReplyTimer.current) {
+            console.debug("[LiveChat] cancelling auto-reply timer (admin is typing)", {
+              t: new Date().toISOString(),
+            });
             clearTimeout(autoReplyTimer.current);
             autoReplyTimer.current = null;
           }
@@ -244,6 +253,9 @@ const LiveChat = () => {
     if (!text) setInput("");
 
     if (autoReplyTimer.current) {
+      console.debug("[LiveChat] cancelling existing auto-reply timer (visitor sent new message)", {
+        t: new Date().toISOString(),
+      });
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
     }
@@ -257,7 +269,17 @@ const LiveChat = () => {
 
     setShowTyping(true);
     autoReplyStartedAt.current = Date.now();
+    console.debug("[LiveChat] auto-reply timer scheduled", {
+      t: new Date().toISOString(),
+      visitorMsgId: insertedId,
+      delayMs: autoReplyDelayRef.current,
+      autoReplyStartedAt: autoReplyStartedAt.current,
+    });
     autoReplyTimer.current = setTimeout(async () => {
+      console.debug("[LiveChat] auto-reply timer FIRED", {
+        t: new Date().toISOString(),
+        visitorMsgId: insertedId,
+      });
       setShowTyping(false);
       autoReplyTimer.current = null;
       if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
@@ -278,6 +300,11 @@ const LiveChat = () => {
       last.sender_type === "admin" &&
       new Date(last.created_at).getTime() > autoReplyStartedAt.current
     ) {
+      console.debug("[LiveChat] cancelling auto-reply timer (admin reply newer than timer start)", {
+        t: new Date().toISOString(),
+        adminMsgCreatedAt: last.created_at,
+        autoReplyStartedAt: autoReplyStartedAt.current,
+      });
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
       setShowTyping(false);
