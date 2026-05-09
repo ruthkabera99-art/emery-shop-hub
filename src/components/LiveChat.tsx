@@ -283,6 +283,7 @@ const LiveChat = () => {
       console.debug("[LiveChat] cancelling existing auto-reply timer (visitor sent new message)", {
         t: new Date().toISOString(),
       });
+      logDebug("timer-cancel", "Cancelled by new visitor msg", "Visitor sent another message");
       clearTimeout(autoReplyTimer.current);
       autoReplyTimer.current = null;
     }
@@ -291,6 +292,8 @@ const LiveChat = () => {
       _session_id: sessionId.current,
       _content: content,
     });
+
+    logDebug("visitor-msg", "Visitor message sent", `id=${(insertedId as string)?.slice(0, 6) ?? "?"} "${content.slice(0, 30)}"`);
 
     if (insertedId && autoRepliedFor.current.has(insertedId as string)) return;
 
@@ -302,11 +305,13 @@ const LiveChat = () => {
       delayMs: autoReplyDelayRef.current,
       autoReplyStartedAt: autoReplyStartedAt.current,
     });
+    logDebug("timer-start", `Timer started (${autoReplyDelayRef.current}ms)`, `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
     autoReplyTimer.current = setTimeout(async () => {
       console.debug("[LiveChat] auto-reply timer FIRED", {
         t: new Date().toISOString(),
         visitorMsgId: insertedId,
       });
+      logDebug("timer-fired", "Auto-reply FIRED", `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
       setShowTyping(false);
       autoReplyTimer.current = null;
       if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
@@ -316,7 +321,7 @@ const LiveChat = () => {
         _content: getSmartReply(content),
       });
     }, autoReplyDelayRef.current);
-  }, [input, conversationId, autoRepliedKey]);
+  }, [input, conversationId, autoRepliedKey, logDebug]);
 
   // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
   useEffect(() => {
