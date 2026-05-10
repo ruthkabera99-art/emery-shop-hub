@@ -101,13 +101,51 @@ const LiveChat = () => {
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [debugFilter, setDebugFilter] = useState<"all" | "timer" | "admin" | "visitor">("all");
   const debugIdRef = useRef(0);
+
+  // Auto-clear settings
+  const [autoClearOnCycle, setAutoClearOnCycle] = useState(() => {
+    try { return localStorage.getItem("livechat_debug_autoclear_cycle") === "1"; } catch { return false; }
+  });
+  const [autoClearAfterMs, setAutoClearAfterMs] = useState(() => {
+    try { const v = parseInt(localStorage.getItem("livechat_debug_autoclear_ms") || "", 10); return isNaN(v) ? 0 : v; } catch { return 0; }
+  });
+  const autoClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebug = () => {
+    setDebugEvents([]);
+    if (autoClearTimer.current) {
+      clearTimeout(autoClearTimer.current);
+      autoClearTimer.current = null;
+    }
+  };
+
+  const scheduleAutoClear = useCallback(() => {
+    if (autoClearAfterMs > 0) {
+      if (autoClearTimer.current) clearTimeout(autoClearTimer.current);
+      autoClearTimer.current = setTimeout(() => {
+        setDebugEvents([]);
+        autoClearTimer.current = null;
+      }, autoClearAfterMs);
+    }
+  }, [autoClearAfterMs]);
+
   const logDebug = useCallback((kind: DebugEvent["kind"], label: string, detail?: string) => {
     setDebugEvents((prev) => {
       const next = [...prev, { id: ++debugIdRef.current, t: Date.now(), kind, label, detail }];
       return next.length > 80 ? next.slice(-80) : next;
     });
-  }, []);
-  const clearDebug = () => setDebugEvents([]);
+    scheduleAutoClear();
+  }, [scheduleAutoClear]);
+
+  // Auto-clear on completed message cycle (timer fired or cancelled by admin)
+  useEffect(() => {
+    if (!autoClearOnCycle) return;
+    const last = debugEvents[debugEvents.length - 1];
+    if (!last) return;
+    if (last.kind === "timer-fired" || last.kind === "timer-cancel") {
+      clearDebug();
+    }
+  }, [debugEvents, autoClearOnCycle]);
 
   const filteredEvents = debugEvents.filter((ev) => {
     if (debugFilter === "all") return true;
@@ -465,21 +503,59 @@ const LiveChat = () => {
                     </button>
                     {debugOpen && (
                       <>
-                        {/* Filter toggles */}
-                        <div className="px-3 pb-1 flex gap-1">
-                          {(["all", "timer", "admin", "visitor"] as const).map((f) => (
-                            <button
-                              key={f}
-                              onClick={() => setDebugFilter(f)}
-                              className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
-                                debugFilter === f
-                                  ? "bg-primary text-primary-foreground border-primary"
-                                  : "bg-muted text-muted-foreground border-border hover:text-foreground"
-                              }`}
-                            >
-                              {f === "all" ? "All" : f === "timer" ? "Timers" : f === "admin" ? "Admin" : "Visitor"}
-                            </button>
-                          ))}
+                        {/* Filter + auto-clear toggles */}
+                        <div className="px-3 pb-1 flex flex-col gap-1.5">
+                          <div className="flex gap-1">
+                            {(["all", "timer", "admin", "visitor"] as const).map((f) => (
+                              <button
+                                key={f}
+                                onClick={() => setDebugFilter(f)}
+                                className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${
+                                  debugFilter === f
+                                    ? "bg-primary text-primary-foreground border-primary"
+                                    : "bg-muted text-muted-foreground border-border hover:text-foreground"
+                                }`}
+                              >
+                                {f === "all" ? "All" : f === "timer" ? "Timers" : f === "admin" ? "Admin" : "Visitor"}
+                              </button>
+                            ))}
+                          </div>
+                          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+                            <label className="flex items-center gap-1 cursor-pointer hover:text-foreground">
+                              <input
+                                type="checkbox"
+                                checked={autoClearOnCycle}
+                                onChange={(e) => {
+                                  setAutoClearOnCycle(e.target.checked);
+                                  try { localStorage.setItem("livechat_debug_autoclear_cycle", e.target.checked ? "1" : "0"); } catch {}
+                                }}
+                                className="accent-primary h-3 w-3"
+                              />
+                              Auto-clear after cycle
+                            </label>
+                            <span className="text-border">|</span>
+                            <label className="flex items-center gap-1 cursor-pointer hover:text-foreground">
+                              <span>Clear after</span>
+                              <select
+                                value={autoClearAfterMs}
+                                onChange={(e) => {
+                                  const ms = parseInt(e.target.value, 10);
+                                  setAutoClearAfterMs(ms);
+                                  try { localStorage.setItem("livechat_debug_autoclear_ms", String(ms)); } catch {}
+                                  if (ms > 0) scheduleAutoClear();
+                                  else if (autoClearTimer.current) { clearTimeout(autoClearTimer.current); autoClearTimer.current = null; }
+                                }}
+                                className="bg-muted border border-border rounded px-1 py-0.5 text-[10px] focus:outline-none focus:ring-1 focus:ring-primary"
+                              >
+                                <option value={0}>Off</option>
+                                <option value={5000}>5s</option>
+                                <option value={10000}>10s</option>
+                                <option value={30000}>30s</option>
+                                <option value={60000}>60s</option>
+                              </select>
+                              inactivity
+                            </label>
+                          </div>
                         </div>
                         <div className="max-h-40 overflow-y-auto px-3 pb-2 space-y-0.5 font-mono text-[10px] leading-tight">
                           {filteredEvents.length === 0 ? (
