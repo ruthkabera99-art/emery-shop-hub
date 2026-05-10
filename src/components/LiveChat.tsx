@@ -101,13 +101,40 @@ const LiveChat = () => {
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
   const [debugFilter, setDebugFilter] = useState<"all" | "timer" | "admin" | "visitor">("all");
   const debugIdRef = useRef(0);
+
+  // Auto-clear settings
+  const [autoClearOnCycle, setAutoClearOnCycle] = useState(() => {
+    try { return localStorage.getItem("livechat_debug_autoclear_cycle") === "1"; } catch { return false; }
+  });
+  const [autoClearAfterMs, setAutoClearAfterMs] = useState(() => {
+    try { const v = parseInt(localStorage.getItem("livechat_debug_autoclear_ms") || "", 10); return isNaN(v) ? 0 : v; } catch { return 0; }
+  });
+  const autoClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearDebug = () => {
+    setDebugEvents([]);
+    if (autoClearTimer.current) {
+      clearTimeout(autoClearTimer.current);
+      autoClearTimer.current = null;
+    }
+  };
+
+  const scheduleAutoClear = useCallback(() => {
+    if (autoClearAfterMs > 0) {
+      if (autoClearTimer.current) clearTimeout(autoClearTimer.current);
+      autoClearTimer.current = setTimeout(() => {
+        setDebugEvents([]);
+        autoClearTimer.current = null;
+      }, autoClearAfterMs);
+    }
+  }, [autoClearAfterMs]);
+
   const logDebug = useCallback((kind: DebugEvent["kind"], label: string, detail?: string) => {
     setDebugEvents((prev) => {
       const next = [...prev, { id: ++debugIdRef.current, t: Date.now(), kind, label, detail }];
       return next.length > 80 ? next.slice(-80) : next;
     });
   }, []);
-  const clearDebug = () => setDebugEvents([]);
 
   const filteredEvents = debugEvents.filter((ev) => {
     if (debugFilter === "all") return true;
