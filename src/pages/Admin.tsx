@@ -120,6 +120,7 @@ const tabs = [
   { id: "analytics", label: "Analytics", icon: BarChart3 },
   { id: "visitors", label: "Visitors", icon: Eye },
   { id: "chat", label: "Chat", icon: MessageSquare },
+  { id: "chat-training", label: "AI Training", icon: MessageSquare },
   { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
