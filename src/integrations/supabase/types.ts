@@ -59,6 +59,42 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_training: {
+        Row: {
+          category: string | null
+          content: string
+          created_at: string
+          created_by: string | null
+          enabled: boolean
+          id: string
+          priority: number
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          category?: string | null
+          content: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          priority?: number
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          category?: string | null
+          content?: string
+          created_at?: string
+          created_by?: string | null
+          enabled?: boolean
+          id?: string
+          priority?: number
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       conversations: {
         Row: {
           created_at: string
