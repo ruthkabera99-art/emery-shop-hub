@@ -1175,6 +1175,7 @@ const Admin = () => {
 
           {/* ── ROLES ── */}
           {activeTab === "roles" && <RolesManager />}
+          {activeTab === "chat-training" && <ChatTrainingManager />}
 
           {activeTab === "blog" && (
             <div>
