@@ -41,6 +41,7 @@ import AnalyticsDashboard from "@/components/admin/AnalyticsDashboard";
 import CustomersManager from "@/components/admin/CustomersManager";
 import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
+import ChatTrainingManager from "@/components/admin/ChatTrainingManager";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
