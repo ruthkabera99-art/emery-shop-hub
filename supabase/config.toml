@@ -1,1 +1,10 @@
 project_id = "oohqsyawrdwddjmcenes"
+
+[functions.chat-auto-reply]
+verify_jwt = false
+
+[functions.create-checkout]
+verify_jwt = false
+
+[functions.sitemap]
+verify_jwt = false
