@@ -353,9 +353,14 @@ const LiveChat = () => {
       autoReplyTimer.current = null;
       if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
       markAutoReplied(insertedId as string);
+      const history = messagesRef.current.slice(-10).map((m) => ({
+        role: (m.sender_type === "admin" ? "assistant" : "user") as "user" | "assistant",
+        content: m.content,
+      }));
+      const reply = await getSmartReply(content, history);
       await supabase.rpc("send_visitor_auto_reply", {
         _session_id: sessionId.current,
-        _content: getSmartReply(content),
+        _content: reply,
       });
     }, autoReplyDelayRef.current);
   }, [input, conversationId, autoRepliedKey, logDebug]);
