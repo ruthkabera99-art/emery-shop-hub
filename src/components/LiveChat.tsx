@@ -77,6 +77,7 @@ const LiveChat = () => {
   const autoReplyDelayMs = chatConfig.autoReplyDelayMs;
   const autoReplyDelayRef = useRef(autoReplyDelayMs);
   useEffect(() => { autoReplyDelayRef.current = autoReplyDelayMs; }, [autoReplyDelayMs]);
+  const messagesRef = useRef<Message[]>([]);
 
   // ── Debug panel ──
   type DebugEvent = {
