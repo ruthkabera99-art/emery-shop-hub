@@ -308,6 +308,7 @@ const LiveChat = () => {
   }, [conversationId, playSound]);
 
   useEffect(() => {
+    messagesRef.current = messages;
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, showTyping, adminTyping]);
 
