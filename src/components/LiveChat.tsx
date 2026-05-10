@@ -134,7 +134,18 @@ const LiveChat = () => {
       const next = [...prev, { id: ++debugIdRef.current, t: Date.now(), kind, label, detail }];
       return next.length > 80 ? next.slice(-80) : next;
     });
-  }, []);
+    scheduleAutoClear();
+  }, [scheduleAutoClear]);
+
+  // Auto-clear on completed message cycle (timer fired or cancelled by admin)
+  useEffect(() => {
+    if (!autoClearOnCycle) return;
+    const last = debugEvents[debugEvents.length - 1];
+    if (!last) return;
+    if (last.kind === "timer-fired" || last.kind === "timer-cancel") {
+      clearDebug();
+    }
+  }, [debugEvents, autoClearOnCycle]);
 
   const filteredEvents = debugEvents.filter((ev) => {
     if (debugFilter === "all") return true;
