@@ -99,6 +99,7 @@ const LiveChat = () => {
   };
   const [debugOpen, setDebugOpen] = useState(false);
   const [debugEvents, setDebugEvents] = useState<DebugEvent[]>([]);
+  const [debugFilter, setDebugFilter] = useState<"all" | "timer" | "admin" | "visitor">("all");
   const debugIdRef = useRef(0);
   const logDebug = useCallback((kind: DebugEvent["kind"], label: string, detail?: string) => {
     setDebugEvents((prev) => {
@@ -107,6 +108,14 @@ const LiveChat = () => {
     });
   }, []);
   const clearDebug = () => setDebugEvents([]);
+
+  const filteredEvents = debugEvents.filter((ev) => {
+    if (debugFilter === "all") return true;
+    if (debugFilter === "timer") return ev.kind.startsWith("timer");
+    if (debugFilter === "admin") return ev.kind === "admin-msg";
+    if (debugFilter === "visitor") return ev.kind === "visitor-msg";
+    return true;
+  });
 
 
   // Load conversation as soon as the user has started (survives refresh via localStorage)
