@@ -117,6 +117,37 @@ const ChatTrainingManager = () => {
         </div>
       </div>
 
+      {/* Preview tool */}
+      <Card className="p-4 space-y-3 border-primary/30">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Send a sample customer message and see exactly what the AI would reply using your current training entries.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="e.g. What's your return policy?"
+            value={previewInput}
+            onChange={(e) => setPreviewInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPreview(); } }}
+          />
+          <Button onClick={runPreview} disabled={previewLoading}>
+            <Send className="h-4 w-4 mr-1" />
+            {previewLoading ? "Thinking…" : "Test reply"}
+          </Button>
+        </div>
+        {previewReply !== null && (
+          <div className="rounded-md bg-muted p-3 space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>AI reply</span>
+              {previewMs !== null && <span>{previewMs} ms</span>}
+            </div>
+            <p className="text-sm whitespace-pre-wrap">{previewReply}</p>
+          </div>
+        )}
+      </Card>
+
       {/* New entry */}
       <Card className="p-4 space-y-3">
         <h3 className="font-semibold flex items-center gap-2"><Plus className="h-4 w-4" /> Add new training</h3>
