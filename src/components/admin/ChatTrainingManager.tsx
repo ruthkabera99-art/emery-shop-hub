@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Plus, Brain, Save, Sparkles, Send } from "lucide-react";
+import { Trash2, Plus, Brain, Save, Sparkles, Send, RotateCcw, User, Bot } from "lucide-react";
 
 interface TrainingEntry {
   id: string;
@@ -18,35 +18,46 @@ interface TrainingEntry {
   priority: number;
 }
 
+interface PreviewTurn { role: "user" | "assistant"; content: string; ms?: number }
+
 const ChatTrainingManager = () => {
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({ title: "", content: "", category: "general", priority: 0 });
   const [saving, setSaving] = useState(false);
   const [previewInput, setPreviewInput] = useState("");
-  const [previewReply, setPreviewReply] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewMs, setPreviewMs] = useState<number | null>(null);
+  const [conversation, setConversation] = useState<PreviewTurn[]>([]);
+
+  const resetConversation = () => {
+    setConversation([]);
+    setPreviewInput("");
+  };
 
   const runPreview = async () => {
-    if (!previewInput.trim()) {
+    const message = previewInput.trim();
+    if (!message) {
       toast({ title: "Enter a test message first", variant: "destructive" });
       return;
     }
+    const history = conversation.map(({ role, content }) => ({ role, content }));
+    const userTurn: PreviewTurn = { role: "user", content: message };
+    setConversation((prev) => [...prev, userTurn]);
+    setPreviewInput("");
     setPreviewLoading(true);
-    setPreviewReply(null);
-    setPreviewMs(null);
     const started = performance.now();
     const { data, error } = await supabase.functions.invoke("chat-auto-reply", {
-      body: { message: previewInput, history: [] },
+      body: { message, history },
     });
-    setPreviewMs(Math.round(performance.now() - started));
+    const ms = Math.round(performance.now() - started);
     setPreviewLoading(false);
     if (error) {
       toast({ title: "Preview failed", description: error.message, variant: "destructive" });
+      setConversation((prev) => [...prev, { role: "assistant", content: `⚠️ ${error.message}`, ms }]);
       return;
     }
-    setPreviewReply((data as { reply?: string })?.reply ?? "(no reply returned)");
+    const reply = (data as { reply?: string })?.reply ?? "(no reply returned)";
+    setConversation((prev) => [...prev, { role: "assistant", content: reply, ms }]);
   };
 
   const load = async () => {
@@ -119,33 +130,52 @@ const ChatTrainingManager = () => {
 
       {/* Preview tool */}
       <Card className="p-4 space-y-3 border-primary/30">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
+          </h3>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{conversation.length} turn{conversation.length === 1 ? "" : "s"}</span>
+            <Button size="sm" variant="ghost" onClick={resetConversation} disabled={conversation.length === 0 && !previewInput}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Reset
+            </Button>
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Send a sample customer message and see exactly what the AI would reply using your current training entries.
+          Multi-turn preview — each message is sent with the prior conversation as context, so you can test follow-ups.
         </p>
+
+        {conversation.length > 0 && (
+          <div className="rounded-md bg-muted/50 p-3 space-y-2 max-h-72 overflow-y-auto">
+            {conversation.map((turn, i) => (
+              <div key={i} className={`flex gap-2 ${turn.role === "user" ? "justify-end" : "justify-start"}`}>
+                {turn.role === "assistant" && <Bot className="h-4 w-4 mt-2 text-primary shrink-0" />}
+                <div className={`rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap ${turn.role === "user" ? "bg-primary text-primary-foreground" : "bg-background border"}`}>
+                  {turn.content}
+                  {turn.ms !== undefined && (
+                    <div className="text-[10px] opacity-60 mt-1">{turn.ms} ms</div>
+                  )}
+                </div>
+                {turn.role === "user" && <User className="h-4 w-4 mt-2 text-muted-foreground shrink-0" />}
+              </div>
+            ))}
+            {previewLoading && <div className="text-xs text-muted-foreground italic">AI is thinking…</div>}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Input
-            placeholder="e.g. What's your return policy?"
+            placeholder={conversation.length ? "Ask a follow-up…" : "e.g. What's your return policy?"}
             value={previewInput}
             onChange={(e) => setPreviewInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPreview(); } }}
+            disabled={previewLoading}
           />
           <Button onClick={runPreview} disabled={previewLoading}>
             <Send className="h-4 w-4 mr-1" />
-            {previewLoading ? "Thinking…" : "Test reply"}
+            {previewLoading ? "…" : "Send"}
           </Button>
         </div>
-        {previewReply !== null && (
-          <div className="rounded-md bg-muted p-3 space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>AI reply</span>
-              {previewMs !== null && <span>{previewMs} ms</span>}
-            </div>
-            <p className="text-sm whitespace-pre-wrap">{previewReply}</p>
-          </div>
-        )}
       </Card>
 
       {/* New entry */}
