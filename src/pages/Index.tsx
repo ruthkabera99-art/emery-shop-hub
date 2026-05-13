@@ -7,6 +7,8 @@ import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
 import LiveChat from "@/components/LiveChat";
+import FlashSaleBanner from "@/components/FlashSaleBanner";
+import WelcomeOfferModal from "@/components/WelcomeOfferModal";
 import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useMemo } from "react";
