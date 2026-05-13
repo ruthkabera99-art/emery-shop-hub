@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Plus, Brain, Save, Sparkles, Send } from "lucide-react";
+import { Trash2, Plus, Brain, Save, Sparkles, Send, RotateCcw, User, Bot } from "lucide-react";
 
 interface TrainingEntry {
   id: string;
