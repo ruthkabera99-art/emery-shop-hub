@@ -130,33 +130,52 @@ const ChatTrainingManager = () => {
 
       {/* Preview tool */}
       <Card className="p-4 space-y-3 border-primary/30">
-        <h3 className="font-semibold flex items-center gap-2">
-          <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
-        </h3>
+        <div className="flex items-center justify-between gap-2">
+          <h3 className="font-semibold flex items-center gap-2">
+            <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
+          </h3>
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span>{conversation.length} turn{conversation.length === 1 ? "" : "s"}</span>
+            <Button size="sm" variant="ghost" onClick={resetConversation} disabled={conversation.length === 0 && !previewInput}>
+              <RotateCcw className="h-3 w-3 mr-1" /> Reset
+            </Button>
+          </div>
+        </div>
         <p className="text-xs text-muted-foreground">
-          Send a sample customer message and see exactly what the AI would reply using your current training entries.
+          Multi-turn preview — each message is sent with the prior conversation as context, so you can test follow-ups.
         </p>
+
+        {conversation.length > 0 && (
+          <div className="rounded-md bg-muted/50 p-3 space-y-2 max-h-72 overflow-y-auto">
+            {conversation.map((turn, i) => (
+              <div key={i} className={`flex gap-2 ${turn.role === "user" ? "justify-end" : "justify-start"}`}>
+                {turn.role === "assistant" && <Bot className="h-4 w-4 mt-2 text-primary shrink-0" />}
+                <div className={`rounded-lg px-3 py-2 max-w-[80%] text-sm whitespace-pre-wrap ${turn.role === "user" ? "bg-primary text-primary-foreground" : "bg-background border"}`}>
+                  {turn.content}
+                  {turn.ms !== undefined && (
+                    <div className="text-[10px] opacity-60 mt-1">{turn.ms} ms</div>
+                  )}
+                </div>
+                {turn.role === "user" && <User className="h-4 w-4 mt-2 text-muted-foreground shrink-0" />}
+              </div>
+            ))}
+            {previewLoading && <div className="text-xs text-muted-foreground italic">AI is thinking…</div>}
+          </div>
+        )}
+
         <div className="flex gap-2">
           <Input
-            placeholder="e.g. What's your return policy?"
+            placeholder={conversation.length ? "Ask a follow-up…" : "e.g. What's your return policy?"}
             value={previewInput}
             onChange={(e) => setPreviewInput(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPreview(); } }}
+            disabled={previewLoading}
           />
           <Button onClick={runPreview} disabled={previewLoading}>
             <Send className="h-4 w-4 mr-1" />
-            {previewLoading ? "Thinking…" : "Test reply"}
+            {previewLoading ? "…" : "Send"}
           </Button>
         </div>
-        {previewReply !== null && (
-          <div className="rounded-md bg-muted p-3 space-y-1">
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              <span>AI reply</span>
-              {previewMs !== null && <span>{previewMs} ms</span>}
-            </div>
-            <p className="text-sm whitespace-pre-wrap">{previewReply}</p>
-          </div>
-        )}
       </Card>
 
       {/* New entry */}
