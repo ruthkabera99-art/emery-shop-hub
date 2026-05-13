@@ -23,6 +23,31 @@ const ChatTrainingManager = () => {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({ title: "", content: "", category: "general", priority: 0 });
   const [saving, setSaving] = useState(false);
+  const [previewInput, setPreviewInput] = useState("");
+  const [previewReply, setPreviewReply] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMs, setPreviewMs] = useState<number | null>(null);
+
+  const runPreview = async () => {
+    if (!previewInput.trim()) {
+      toast({ title: "Enter a test message first", variant: "destructive" });
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewReply(null);
+    setPreviewMs(null);
+    const started = performance.now();
+    const { data, error } = await supabase.functions.invoke("chat-auto-reply", {
+      body: { message: previewInput, history: [] },
+    });
+    setPreviewMs(Math.round(performance.now() - started));
+    setPreviewLoading(false);
+    if (error) {
+      toast({ title: "Preview failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPreviewReply((data as { reply?: string })?.reply ?? "(no reply returned)");
+  };
 
   const load = async () => {
     setLoading(true);
