@@ -44,6 +44,7 @@ const Index = () => {
         description="Shop premium footwear at Emery Collection. Discover stylish sneakers, boots, heels & sandals with free shipping worldwide."
         canonical="https://emerycollectionshop.store/"
       />
+      <FlashSaleBanner />
       <Navbar />
       <main>
         {!loaded ? (
