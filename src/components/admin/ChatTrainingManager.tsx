@@ -7,7 +7,7 @@ import { Switch } from "@/components/ui/switch";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Trash2, Plus, Brain, Save } from "lucide-react";
+import { Trash2, Plus, Brain, Save, Sparkles, Send } from "lucide-react";
 
 interface TrainingEntry {
   id: string;
@@ -23,6 +23,31 @@ const ChatTrainingManager = () => {
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({ title: "", content: "", category: "general", priority: 0 });
   const [saving, setSaving] = useState(false);
+  const [previewInput, setPreviewInput] = useState("");
+  const [previewReply, setPreviewReply] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewMs, setPreviewMs] = useState<number | null>(null);
+
+  const runPreview = async () => {
+    if (!previewInput.trim()) {
+      toast({ title: "Enter a test message first", variant: "destructive" });
+      return;
+    }
+    setPreviewLoading(true);
+    setPreviewReply(null);
+    setPreviewMs(null);
+    const started = performance.now();
+    const { data, error } = await supabase.functions.invoke("chat-auto-reply", {
+      body: { message: previewInput, history: [] },
+    });
+    setPreviewMs(Math.round(performance.now() - started));
+    setPreviewLoading(false);
+    if (error) {
+      toast({ title: "Preview failed", description: error.message, variant: "destructive" });
+      return;
+    }
+    setPreviewReply((data as { reply?: string })?.reply ?? "(no reply returned)");
+  };
 
   const load = async () => {
     setLoading(true);
@@ -91,6 +116,37 @@ const ChatTrainingManager = () => {
           </p>
         </div>
       </div>
+
+      {/* Preview tool */}
+      <Card className="p-4 space-y-3 border-primary/30">
+        <h3 className="font-semibold flex items-center gap-2">
+          <Sparkles className="h-4 w-4 text-primary" /> Test the AI reply
+        </h3>
+        <p className="text-xs text-muted-foreground">
+          Send a sample customer message and see exactly what the AI would reply using your current training entries.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            placeholder="e.g. What's your return policy?"
+            value={previewInput}
+            onChange={(e) => setPreviewInput(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); runPreview(); } }}
+          />
+          <Button onClick={runPreview} disabled={previewLoading}>
+            <Send className="h-4 w-4 mr-1" />
+            {previewLoading ? "Thinking…" : "Test reply"}
+          </Button>
+        </div>
+        {previewReply !== null && (
+          <div className="rounded-md bg-muted p-3 space-y-1">
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              <span>AI reply</span>
+              {previewMs !== null && <span>{previewMs} ms</span>}
+            </div>
+            <p className="text-sm whitespace-pre-wrap">{previewReply}</p>
+          </div>
+        )}
+      </Card>
 
       {/* New entry */}
       <Card className="p-4 space-y-3">
