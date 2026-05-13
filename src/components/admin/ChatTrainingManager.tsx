@@ -18,35 +18,46 @@ interface TrainingEntry {
   priority: number;
 }
 
+interface PreviewTurn { role: "user" | "assistant"; content: string; ms?: number }
+
 const ChatTrainingManager = () => {
   const [entries, setEntries] = useState<TrainingEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [draft, setDraft] = useState({ title: "", content: "", category: "general", priority: 0 });
   const [saving, setSaving] = useState(false);
   const [previewInput, setPreviewInput] = useState("");
-  const [previewReply, setPreviewReply] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [previewMs, setPreviewMs] = useState<number | null>(null);
+  const [conversation, setConversation] = useState<PreviewTurn[]>([]);
+
+  const resetConversation = () => {
+    setConversation([]);
+    setPreviewInput("");
+  };
 
   const runPreview = async () => {
-    if (!previewInput.trim()) {
+    const message = previewInput.trim();
+    if (!message) {
       toast({ title: "Enter a test message first", variant: "destructive" });
       return;
     }
+    const history = conversation.map(({ role, content }) => ({ role, content }));
+    const userTurn: PreviewTurn = { role: "user", content: message };
+    setConversation((prev) => [...prev, userTurn]);
+    setPreviewInput("");
     setPreviewLoading(true);
-    setPreviewReply(null);
-    setPreviewMs(null);
     const started = performance.now();
     const { data, error } = await supabase.functions.invoke("chat-auto-reply", {
-      body: { message: previewInput, history: [] },
+      body: { message, history },
     });
-    setPreviewMs(Math.round(performance.now() - started));
+    const ms = Math.round(performance.now() - started);
     setPreviewLoading(false);
     if (error) {
       toast({ title: "Preview failed", description: error.message, variant: "destructive" });
+      setConversation((prev) => [...prev, { role: "assistant", content: `⚠️ ${error.message}`, ms }]);
       return;
     }
-    setPreviewReply((data as { reply?: string })?.reply ?? "(no reply returned)");
+    const reply = (data as { reply?: string })?.reply ?? "(no reply returned)";
+    setConversation((prev) => [...prev, { role: "assistant", content: reply, ms }]);
   };
 
   const load = async () => {
