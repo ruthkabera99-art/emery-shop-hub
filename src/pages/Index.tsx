@@ -7,6 +7,8 @@ import Testimonials from "@/components/Testimonials";
 import Newsletter from "@/components/Newsletter";
 import Footer from "@/components/Footer";
 import LiveChat from "@/components/LiveChat";
+import FlashSaleBanner from "@/components/FlashSaleBanner";
+import WelcomeOfferModal from "@/components/WelcomeOfferModal";
 import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useMemo } from "react";
@@ -42,6 +44,7 @@ const Index = () => {
         description="Shop premium footwear at Emery Collection. Discover stylish sneakers, boots, heels & sandals with free shipping worldwide."
         canonical="https://emerycollectionshop.store/"
       />
+      <FlashSaleBanner />
       <Navbar />
       <main>
         {!loaded ? (
@@ -60,6 +63,7 @@ const Index = () => {
       </main>
       <Footer />
       <LiveChat />
+      <WelcomeOfferModal />
     </div>
   );
 };
