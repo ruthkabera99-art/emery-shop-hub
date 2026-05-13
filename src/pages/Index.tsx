@@ -63,6 +63,7 @@ const Index = () => {
       </main>
       <Footer />
       <LiveChat />
+      <WelcomeOfferModal />
     </div>
   );
 };
