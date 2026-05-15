@@ -9,6 +9,7 @@ import Footer from "@/components/Footer";
 import LiveChat from "@/components/LiveChat";
 import FlashSaleBanner from "@/components/FlashSaleBanner";
 import WelcomeOfferModal from "@/components/WelcomeOfferModal";
+import RecentPurchaseNotifications from "@/components/RecentPurchaseNotifications";
 import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useMemo } from "react";
@@ -64,6 +65,7 @@ const Index = () => {
       <Footer />
       <LiveChat />
       <WelcomeOfferModal />
+      <RecentPurchaseNotifications />
     </div>
   );
 };
