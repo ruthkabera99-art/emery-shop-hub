@@ -1,12 +1,14 @@
 import { useEffect, useState } from "react";
-import { Flame, X, Copy, Check } from "lucide-react";
+import { Flame, X, Copy, Check, TrendingUp } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
 const STORAGE_END = "flashSaleEndsAt";
 const STORAGE_DISMISS = "flashSaleDismissed";
+const STORAGE_SOLD = "flashSaleSoldStart";
 const DURATION_MS = 1000 * 60 * 60 * 48; // 48h
 const CODE = "FLASH20";
 const DISCOUNT = "20%";
+const STOCK_TOTAL = 500;
 
 const getEndsAt = () => {
   const saved = localStorage.getItem(STORAGE_END);
@@ -17,6 +19,17 @@ const getEndsAt = () => {
   const next = Date.now() + DURATION_MS;
   localStorage.setItem(STORAGE_END, String(next));
   return next;
+};
+
+const getSoldBase = () => {
+  const saved = localStorage.getItem(STORAGE_SOLD);
+  if (saved) {
+    const n = parseInt(saved, 10);
+    if (!Number.isNaN(n)) return n;
+  }
+  const base = 180 + Math.floor(Math.random() * 40);
+  localStorage.setItem(STORAGE_SOLD, String(base));
+  return base;
 };
 
 const fmt = (ms: number) => {
@@ -34,6 +47,8 @@ const FlashSaleBanner = () => {
   const [dismissed, setDismissed] = useState(false);
   const [copied, setCopied] = useState(false);
   const [viewers, setViewers] = useState(0);
+  const [sold, setSold] = useState(0);
+  const [pulse, setPulse] = useState(false);
 
   useEffect(() => {
     if (localStorage.getItem(STORAGE_DISMISS) === "1") {
@@ -42,6 +57,7 @@ const FlashSaleBanner = () => {
     }
     setEndsAt(getEndsAt());
     setViewers(28 + Math.floor(Math.random() * 47));
+    setSold(getSoldBase());
   }, []);
 
   useEffect(() => {
@@ -58,9 +74,31 @@ const FlashSaleBanner = () => {
     return () => clearInterval(t);
   }, []);
 
+  // Real-time sales counter — random ticks every 5–12s
+  useEffect(() => {
+    if (dismissed) return;
+    let timeout: ReturnType<typeof setTimeout>;
+    const tick = () => {
+      setSold((s) => {
+        const next = Math.min(STOCK_TOTAL - 5, s + 1 + Math.floor(Math.random() * 2));
+        if (next !== s) {
+          setPulse(true);
+          setTimeout(() => setPulse(false), 700);
+        }
+        return next;
+      });
+      timeout = setTimeout(tick, 5000 + Math.random() * 7000);
+    };
+    timeout = setTimeout(tick, 6000);
+    return () => clearTimeout(timeout);
+  }, [dismissed]);
+
   if (dismissed || !endsAt) return null;
   const remaining = endsAt - now;
   if (remaining <= 0) return null;
+
+  const pct = Math.min(100, Math.round((sold / STOCK_TOTAL) * 100));
+  const remainingStock = STOCK_TOTAL - sold;
 
   const copy = async () => {
     try {
@@ -81,32 +119,49 @@ const FlashSaleBanner = () => {
   return (
     <div className="relative bg-gradient-to-r from-primary via-accent to-primary text-primary-foreground overflow-hidden">
       <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(circle_at_20%_50%,white_1px,transparent_1px)] [background-size:24px_24px] animate-pulse" />
-      <div className="container mx-auto px-4 py-2.5 flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs sm:text-sm relative">
-        <div className="flex items-center gap-1.5 font-semibold">
-          <Flame className="h-4 w-4 animate-pulse" />
-          FLASH SALE • {DISCOUNT} OFF
+      <div className="container mx-auto px-4 py-2.5 relative">
+        <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs sm:text-sm pr-8">
+          <div className="flex items-center gap-1.5 font-semibold">
+            <Flame className="h-4 w-4 animate-pulse" />
+            FLASH SALE • {DISCOUNT} OFF
+          </div>
+          <div className="flex items-center gap-1.5 font-mono tabular-nums">
+            Ends in <span className="bg-background/20 backdrop-blur px-2 py-0.5 rounded">{fmt(remaining)}</span>
+          </div>
+          <button
+            onClick={copy}
+            className="flex items-center gap-1.5 bg-background/20 hover:bg-background/30 backdrop-blur px-2.5 py-1 rounded font-semibold transition-colors"
+          >
+            {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+            {CODE}
+          </button>
+          <div className={`flex items-center gap-1.5 font-semibold transition-transform ${pulse ? "scale-110" : "scale-100"}`}>
+            <TrendingUp className="h-3.5 w-3.5" />
+            <span className="tabular-nums">{sold}</span>
+            <span className="opacity-90 font-normal">sold</span>
+            <span className="opacity-75 font-normal hidden sm:inline">• only {remainingStock} left</span>
+          </div>
+          <div className="hidden sm:flex items-center gap-1.5 opacity-90">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-background opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-background" />
+            </span>
+            {viewers} shopping now
+          </div>
         </div>
-        <div className="flex items-center gap-1.5 font-mono tabular-nums">
-          Ends in <span className="bg-background/20 backdrop-blur px-2 py-0.5 rounded">{fmt(remaining)}</span>
+
+        {/* Stock progress bar */}
+        <div className="mt-1.5 max-w-md mx-auto h-1 rounded-full bg-background/20 overflow-hidden">
+          <div
+            className="h-full bg-background/90 transition-all duration-700 ease-out"
+            style={{ width: `${pct}%` }}
+          />
         </div>
-        <button
-          onClick={copy}
-          className="flex items-center gap-1.5 bg-background/20 hover:bg-background/30 backdrop-blur px-2.5 py-1 rounded font-semibold transition-colors"
-        >
-          {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
-          {CODE}
-        </button>
-        <div className="hidden sm:flex items-center gap-1.5 opacity-90">
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-background opacity-75" />
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-background" />
-          </span>
-          {viewers} people shopping now
-        </div>
+
         <button
           onClick={dismiss}
           aria-label="Dismiss banner"
-          className="absolute right-2 top-1/2 -translate-y-1/2 p-1 rounded hover:bg-background/20 transition-colors"
+          className="absolute right-2 top-2 p-1 rounded hover:bg-background/20 transition-colors"
         >
           <X className="h-3.5 w-3.5" />
         </button>
