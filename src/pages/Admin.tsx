@@ -27,7 +27,7 @@ import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
-  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck,
+  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck, Activity,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
@@ -42,6 +42,7 @@ import CustomersManager from "@/components/admin/CustomersManager";
 import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
 import ChatTrainingManager from "@/components/admin/ChatTrainingManager";
+import ChatAutoReplyMonitor from "@/components/admin/ChatAutoReplyMonitor";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
@@ -122,6 +123,7 @@ const tabs = [
   { id: "visitors", label: "Visitors", icon: Eye },
   { id: "chat", label: "Chat", icon: MessageSquare },
   { id: "chat-training", label: "AI Training", icon: MessageSquare },
+  { id: "chat-monitor", label: "AI Monitor", icon: Activity },
   { id: "hero", label: "Hero Banner", icon: ImageIcon },
   { id: "theme", label: "Theme", icon: Palette },
   { id: "footer", label: "Footer", icon: FileText },
@@ -1176,6 +1178,7 @@ const Admin = () => {
           {/* ── ROLES ── */}
           {activeTab === "roles" && <RolesManager />}
           {activeTab === "chat-training" && <ChatTrainingManager />}
+          {activeTab === "chat-monitor" && <ChatAutoReplyMonitor />}
 
           {activeTab === "blog" && (
             <div>

@@ -59,6 +59,48 @@ export type Database = {
         }
         Relationships: []
       }
+      chat_auto_reply_metrics: {
+        Row: {
+          ai_status: number | null
+          created_at: string
+          error: string | null
+          history_count: number | null
+          id: string
+          knowledge_chars: number | null
+          latency_ms: number
+          message_chars: number | null
+          model: string | null
+          status: string
+          timed_out: boolean
+        }
+        Insert: {
+          ai_status?: number | null
+          created_at?: string
+          error?: string | null
+          history_count?: number | null
+          id?: string
+          knowledge_chars?: number | null
+          latency_ms: number
+          message_chars?: number | null
+          model?: string | null
+          status: string
+          timed_out?: boolean
+        }
+        Update: {
+          ai_status?: number | null
+          created_at?: string
+          error?: string | null
+          history_count?: number | null
+          id?: string
+          knowledge_chars?: number | null
+          latency_ms?: number
+          message_chars?: number | null
+          model?: string | null
+          status?: string
+          timed_out?: boolean
+        }
+        Relationships: []
+      }
       chat_training: {
         Row: {
           category: string | null
