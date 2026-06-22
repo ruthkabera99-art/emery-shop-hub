@@ -146,8 +146,8 @@ ${knowledge || "(no training entries yet)"}`;
         body: JSON.stringify({
           model: MODEL,
           messages,
-          max_tokens: 180,
-          temperature: 0.4,
+          max_tokens: 120,
+          temperature: 0.3,
         }),
         signal: ac.signal,
       });
