@@ -169,6 +169,13 @@ const LiveChat = () => {
     init();
   }, [started]);
 
+  // Pre-warm the AI edge function as soon as the chat opens so the first
+  // visitor message gets a near-instant reply (avoids cold-start latency).
+  useEffect(() => {
+    if (!open) return;
+    supabase.functions.invoke("chat-auto-reply", { body: { warmup: true } }).catch(() => {});
+  }, [open]);
+
   useEffect(() => {
     if (!conversationId || hasGreeted || messages.length > 0) return;
     setHasGreeted(true);
@@ -337,33 +344,36 @@ const LiveChat = () => {
 
     setShowTyping(true);
     autoReplyStartedAt.current = Date.now();
-    console.debug("[LiveChat] auto-reply timer scheduled", {
-      t: new Date().toISOString(),
-      visitorMsgId: insertedId,
-      delayMs: autoReplyDelayRef.current,
-      autoReplyStartedAt: autoReplyStartedAt.current,
-    });
-    logDebug("timer-start", `Timer started (${autoReplyDelayRef.current}ms)`, `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
-    autoReplyTimer.current = setTimeout(async () => {
-      console.debug("[LiveChat] auto-reply timer FIRED", {
-        t: new Date().toISOString(),
-        visitorMsgId: insertedId,
-      });
-      logDebug("timer-fired", "Auto-reply FIRED", `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
-      setShowTyping(false);
+    // Fire AI fetch immediately in parallel — minimum natural pause of ~400ms,
+    // but never wait the configured admin-takeover delay on top of AI latency.
+    const minPauseMs = 400;
+    const startedAt = Date.now();
+    const history = messagesRef.current.slice(-10).map((m) => ({
+      role: (m.sender_type === "admin" ? "assistant" : "user") as "user" | "assistant",
+      content: m.content,
+    }));
+    logDebug("timer-start", `AI request started`, `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
+    const replyPromise = getSmartReply(content, history);
+    // Sentinel so admin-typing / admin-reply can still cancel the auto-reply
+    autoReplyTimer.current = setTimeout(() => {}, 30_000);
+    const pendingTimer = autoReplyTimer.current;
+    (async () => {
+      const reply = await replyPromise;
+      const elapsed = Date.now() - startedAt;
+      if (elapsed < minPauseMs) await new Promise((r) => setTimeout(r, minPauseMs - elapsed));
+      // If admin intervened, our sentinel was cleared — abort.
+      if (autoReplyTimer.current !== pendingTimer) return;
+      clearTimeout(pendingTimer);
       autoReplyTimer.current = null;
+      setShowTyping(false);
       if (!insertedId || autoRepliedFor.current.has(insertedId as string)) return;
       markAutoReplied(insertedId as string);
-      const history = messagesRef.current.slice(-10).map((m) => ({
-        role: (m.sender_type === "admin" ? "assistant" : "user") as "user" | "assistant",
-        content: m.content,
-      }));
-      const reply = await getSmartReply(content, history);
+      logDebug("timer-fired", `Auto-reply sent (${Date.now() - startedAt}ms)`, `visitorMsgId=${(insertedId as string)?.slice(0, 6) ?? "?"}`);
       await supabase.rpc("send_visitor_auto_reply", {
         _session_id: sessionId.current,
         _content: reply,
       });
-    }, autoReplyDelayRef.current);
+    })();
   }, [input, conversationId, autoRepliedKey, logDebug]);
 
   // If a real admin replies, cancel any pending auto-reply for the most recent visitor message
