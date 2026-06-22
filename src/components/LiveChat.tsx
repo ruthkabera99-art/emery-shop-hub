@@ -169,6 +169,13 @@ const LiveChat = () => {
     init();
   }, [started]);
 
+  // Pre-warm the AI edge function as soon as the chat opens so the first
+  // visitor message gets a near-instant reply (avoids cold-start latency).
+  useEffect(() => {
+    if (!open) return;
+    supabase.functions.invoke("chat-auto-reply", { body: { warmup: true } }).catch(() => {});
+  }, [open]);
+
   useEffect(() => {
     if (!conversationId || hasGreeted || messages.length > 0) return;
     setHasGreeted(true);
