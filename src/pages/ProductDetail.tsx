@@ -285,6 +285,57 @@ const ProductDetail = () => {
               </Button>
             </div>
 
+            {/* Product Details Panel */}
+            <div className="mt-8 pt-6 border-t border-border">
+              <h3 className="font-display text-lg font-bold mb-4">Product Details</h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <dt className="text-muted-foreground">Type</dt>
+                <dd className="font-medium">{productType}</dd>
+                <dt className="text-muted-foreground">Brand</dt>
+                <dd className="font-medium">{product.brand}</dd>
+                <dt className="text-muted-foreground">Category</dt>
+                <dd className="font-medium capitalize">{product.category}</dd>
+                <dt className="text-muted-foreground">Material</dt>
+                <dd className="font-medium">{productMaterial}</dd>
+                <dt className="text-muted-foreground">Gender</dt>
+                <dd className="font-medium capitalize">
+                  {product.category === "mens" ? "Men" : product.category === "womens" ? "Women" : product.category === "kids" ? "Kids" : "Unisex"}
+                </dd>
+                <dt className="text-muted-foreground">In Stock</dt>
+                <dd className="font-medium">{isOutOfStock ? "No" : `Yes${product.stockQuantity ? ` · ${product.stockQuantity} units` : ""}`}</dd>
+              </dl>
+
+              {/* Available Colors */}
+              <div className="mt-5">
+                <p className="text-sm text-muted-foreground mb-2">Available Colors</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {productColors.map((c) => (
+                    <div key={c.name} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card">
+                      <span className="inline-block w-3.5 h-3.5 rounded-full border border-border" style={{ backgroundColor: c.hex }} />
+                      <span className="text-xs font-medium capitalize">{c.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Available Sizes (summary list) */}
+              {product.sizes && product.sizes.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-sm text-muted-foreground mb-2">Available Sizes (EU)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.sizes.map((s) => (
+                      <span key={s} className="px-2.5 py-1 rounded-md border border-border bg-card text-xs font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Size range: EU {Math.min(...product.sizes)} – {Math.max(...product.sizes)} · {product.sizes.length} sizes
+                  </p>
+                </div>
+              )}
+            </div>
+
             {/* Trust badges */}
             <div className="grid grid-cols-3 gap-3 mt-8 pt-6 border-t border-border">
               <div className="flex flex-col items-center text-center gap-1.5">
