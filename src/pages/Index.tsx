@@ -61,6 +61,33 @@ const Index = () => {
         ) : (
           sections
         )}
+
+        {/* Extra curated collections */}
+        <FeaturedProducts
+          title="Jordan Collection"
+          eyebrow="Iconic"
+          subtitle="Legendary silhouettes from the Jumpman archive"
+          filter={(p) => p.brand?.toLowerCase() === "jordan" || /jordan/i.test(p.name)}
+          limit={8}
+        />
+        <FeaturedProducts
+          title="Boots Collection"
+          eyebrow="Rugged Elegance"
+          subtitle="Premium leather boots crafted for every season"
+          filter={(p) => /boot/i.test(p.name) || p.image === "shoe-boots"}
+          limit={8}
+        />
+        <FeaturedProducts
+          title="Italian Luxury Shoes"
+          eyebrow="Made for Style"
+          subtitle="Hand-finished leather, suede & loafer styles inspired by Milan"
+          filter={(p) =>
+            /italian|loafer|leather|suede|oxford|derby|gucci|prada|ferragamo|versace|bottega/i.test(
+              `${p.name} ${p.brand}`
+            )
+          }
+          limit={8}
+        />
       </main>
       <Footer />
       <LiveChat />

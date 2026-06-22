@@ -15,6 +15,7 @@ const mapDbProduct = (p: any): Product => ({
   inStock: p.in_stock !== false,
   stockQuantity: p.stock_quantity ?? 50,
   description: p.description || "",
+  sizes: Array.isArray(p.sizes) && p.sizes.length > 0 ? p.sizes.map((s: any) => Number(s)).filter((n: number) => !Number.isNaN(n)) : [38, 39, 40, 41, 42, 43, 44, 45],
 });
 
 export const useProducts = () => {

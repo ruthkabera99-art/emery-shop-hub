@@ -72,6 +72,49 @@ const ProductDetail = () => {
   const isOutOfStock = product.inStock === false;
   const isLowStock = !isOutOfStock && product.stockQuantity !== undefined && product.stockQuantity > 0 && product.stockQuantity <= 5;
 
+  // Derive rich details from product name/category
+  const deriveType = (): string => {
+    const n = product.name.toLowerCase();
+    if (/boot/.test(n)) return "Boot";
+    if (/loafer/.test(n)) return "Loafer";
+    if (/oxford|derby/.test(n)) return "Oxford / Derby";
+    if (/sandal|slide/.test(n)) return "Sandal";
+    if (/heel|stiletto/.test(n)) return "Heels";
+    if (/runner|run|vapormax|huarache|presto|max plus/.test(n)) return "Running Sneaker";
+    if (/dunk|jordan|force|blazer|samba|gazelle|forum|superstar|cortez|suede|550|530|2002|cali|mayze/.test(n)) return "Lifestyle Sneaker";
+    return "Sneaker";
+  };
+  const COLOR_MAP: Record<string, string> = {
+    black: "#111111", white: "#f8f8f8", red: "#dc2626", blue: "#1d4ed8", navy: "#0f172a",
+    green: "#16a34a", pink: "#ec4899", cream: "#f5e9d4", ivory: "#f5efe0", grey: "#6b7280",
+    gray: "#6b7280", brown: "#78350f", tan: "#c69c6d", beige: "#d4b896", gold: "#d4af37",
+    silver: "#c0c0c0", purple: "#7c3aed", orange: "#f97316", yellow: "#facc15", bred: "#7f1d1d",
+    rose: "#fb7185", blush: "#fbcfe8", latte: "#c8a27a", cacao: "#5b3a1f", shimmer: "#e6d3a3",
+    pearl: "#f0ead6", granite: "#4b5563", infrared: "#e11d48",
+  };
+  const deriveColors = (): { name: string; hex: string }[] => {
+    const found: { name: string; hex: string }[] = [];
+    const words = product.name.toLowerCase().split(/[\s\-\/]+/);
+    for (const w of words) {
+      if (COLOR_MAP[w] && !found.find((f) => f.name === w)) {
+        found.push({ name: w, hex: COLOR_MAP[w] });
+      }
+    }
+    if (found.length === 0) found.push({ name: "multi", hex: "#94a3b8" });
+    return found;
+  };
+  const deriveMaterial = (): string => {
+    const n = product.name.toLowerCase();
+    if (/suede/.test(n)) return "Premium Suede";
+    if (/leather|jordan|force|dunk/.test(n)) return "Genuine Leather";
+    if (/knit|flyknit|primeknit/.test(n)) return "Engineered Knit";
+    if (/canvas/.test(n)) return "Canvas";
+    return "Leather & Synthetic Mix";
+  };
+  const productType = deriveType();
+  const productColors = deriveColors();
+  const productMaterial = deriveMaterial();
+
   const handleAddToCart = () => {
     if (isOutOfStock) return;
     for (let i = 0; i < quantity; i++) {
@@ -240,6 +283,57 @@ const ProductDetail = () => {
                 <ShoppingBag className="h-5 w-5" />
                 {isOutOfStock ? "Sold Out" : `Add to Cart — ${formatPrice(product.price * quantity)}`}
               </Button>
+            </div>
+
+            {/* Product Details Panel */}
+            <div className="mt-8 pt-6 border-t border-border">
+              <h3 className="font-display text-lg font-bold mb-4">Product Details</h3>
+              <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm">
+                <dt className="text-muted-foreground">Type</dt>
+                <dd className="font-medium">{productType}</dd>
+                <dt className="text-muted-foreground">Brand</dt>
+                <dd className="font-medium">{product.brand}</dd>
+                <dt className="text-muted-foreground">Category</dt>
+                <dd className="font-medium capitalize">{product.category}</dd>
+                <dt className="text-muted-foreground">Material</dt>
+                <dd className="font-medium">{productMaterial}</dd>
+                <dt className="text-muted-foreground">Gender</dt>
+                <dd className="font-medium capitalize">
+                  {product.category === "mens" ? "Men" : product.category === "womens" ? "Women" : product.category === "kids" ? "Kids" : "Unisex"}
+                </dd>
+                <dt className="text-muted-foreground">In Stock</dt>
+                <dd className="font-medium">{isOutOfStock ? "No" : `Yes${product.stockQuantity ? ` · ${product.stockQuantity} units` : ""}`}</dd>
+              </dl>
+
+              {/* Available Colors */}
+              <div className="mt-5">
+                <p className="text-sm text-muted-foreground mb-2">Available Colors</p>
+                <div className="flex flex-wrap items-center gap-2">
+                  {productColors.map((c) => (
+                    <div key={c.name} className="flex items-center gap-1.5 px-2.5 py-1 rounded-full border border-border bg-card">
+                      <span className="inline-block w-3.5 h-3.5 rounded-full border border-border" style={{ backgroundColor: c.hex }} />
+                      <span className="text-xs font-medium capitalize">{c.name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Available Sizes (summary list) */}
+              {product.sizes && product.sizes.length > 0 && (
+                <div className="mt-5">
+                  <p className="text-sm text-muted-foreground mb-2">Available Sizes (EU)</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {product.sizes.map((s) => (
+                      <span key={s} className="px-2.5 py-1 rounded-md border border-border bg-card text-xs font-semibold">
+                        {s}
+                      </span>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Size range: EU {Math.min(...product.sizes)} – {Math.max(...product.sizes)} · {product.sizes.length} sizes
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Trust badges */}

@@ -6,9 +6,11 @@ import { motion } from "framer-motion";
 import { Link } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 
-const FeaturedProducts = ({ title, filter }: { title: string; filter?: (p: Product) => boolean }) => {
+const FeaturedProducts = ({ title, filter, limit = 4, subtitle, eyebrow }: { title: string; filter?: (p: Product) => boolean; limit?: number; subtitle?: string; eyebrow?: string }) => {
   const { data: products = [], isLoading } = useProducts();
   const filtered = filter ? products.filter(filter) : products;
+
+  if (!isLoading && filtered.length === 0) return null;
 
   return (
     <section className="py-12 sm:py-24">
@@ -20,9 +22,9 @@ const FeaturedProducts = ({ title, filter }: { title: string; filter?: (p: Produ
           className="flex flex-col sm:flex-row sm:items-end sm:justify-between mb-8 sm:mb-14 gap-3"
         >
           <div>
-            <p className="text-accent text-xs font-semibold tracking-[0.2em] uppercase mb-2">Curated</p>
+            <p className="text-accent text-xs font-semibold tracking-[0.2em] uppercase mb-2">{eyebrow ?? "Curated"}</p>
             <h2 className="font-display text-2xl sm:text-4xl md:text-5xl font-bold">{title}</h2>
-            <p className="text-muted-foreground text-sm sm:text-base mt-2">Handpicked for exceptional quality and style</p>
+            <p className="text-muted-foreground text-sm sm:text-base mt-2">{subtitle ?? "Handpicked for exceptional quality and style"}</p>
           </div>
           <Link to="/shop" className="group inline-flex items-center gap-2 text-sm font-semibold text-accent hover:text-accent/80 transition-colors shrink-0">
             View All
@@ -31,7 +33,7 @@ const FeaturedProducts = ({ title, filter }: { title: string; filter?: (p: Produ
         </motion.div>
         {isLoading ? (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
-            {Array.from({ length: 4 }).map((_, i) => (
+            {Array.from({ length: limit }).map((_, i) => (
               <div key={i} className="space-y-3">
                 <Skeleton className="aspect-[3/4] w-full rounded-2xl" />
                 <Skeleton className="h-4 w-3/4" />
@@ -41,7 +43,7 @@ const FeaturedProducts = ({ title, filter }: { title: string; filter?: (p: Produ
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-8">
-            {filtered.slice(0, 4).map((p, i) => (
+            {filtered.slice(0, limit).map((p, i) => (
               <ProductCard key={p.id} product={p} index={i} />
             ))}
           </div>
