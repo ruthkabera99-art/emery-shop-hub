@@ -16,12 +16,12 @@ const corsHeaders = {
 interface HistoryMsg { role: "user" | "assistant"; content: string }
 
 const MODEL = "google/gemini-3.1-flash-lite";
-const AI_TIMEOUT_MS = 12_000;
+const AI_TIMEOUT_MS = 10_000;
 
 // Module-scope cache (persists across invocations on a warm isolate)
 let cachedKnowledge: string | null = null;
 let cachedAt = 0;
-const CACHE_TTL_MS = 60_000;
+const CACHE_TTL_MS = 300_000; // 5 min
 
 const supabase = createClient(
   Deno.env.get("SUPABASE_URL")!,
