@@ -87,7 +87,17 @@ Deno.serve(async (req) => {
   let historyCount = 0;
 
   try {
-    const { message, history } = await req.json() as { message: string; history?: HistoryMsg[] };
+    const { message, history, warmup } = await req.json() as { message?: string; history?: HistoryMsg[]; warmup?: boolean };
+
+    // Warmup ping: pre-load knowledge cache + return immediately. Keeps the
+    // isolate hot so the next real message is sub-second.
+    if (warmup) {
+      await getKnowledge();
+      return new Response(JSON.stringify({ ok: true, warm: true }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     if (!message || typeof message !== "string") {
       logMetric({ latency_ms: Date.now() - started, status: "bad_request", error: "message missing" });
       return new Response(JSON.stringify({ error: "message is required" }), {
