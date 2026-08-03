@@ -7,6 +7,21 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar, User } from "lucide-react";
 import { format } from "date-fns";
+import DOMPurify from "dompurify";
+
+const sanitizeHtml = (html: string) =>
+  DOMPurify.sanitize(html, {
+    ALLOWED_TAGS: [
+      "p", "br", "strong", "em", "u", "s", "blockquote", "code", "pre",
+      "h1", "h2", "h3", "h4", "h5", "h6", "ul", "ol", "li", "hr",
+      "a", "img", "figure", "figcaption", "span", "div", "table",
+      "thead", "tbody", "tr", "th", "td",
+    ],
+    ALLOWED_ATTR: ["href", "target", "rel", "src", "alt", "title", "class"],
+    ALLOWED_URI_REGEXP: /^(?:https?:|mailto:|tel:|\/|#)/i,
+    FORBID_TAGS: ["script", "style", "iframe", "object", "embed", "form", "input"],
+    FORBID_ATTR: ["onerror", "onload", "onclick", "style"],
+  });
 
 const BlogPost = () => {
   const { slug } = useParams<{ slug: string }>();
@@ -92,8 +107,9 @@ const BlogPost = () => {
 
           <article
             className="prose prose-neutral dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
           />
+
         </div>
       </main>
       <Footer />

@@ -56,35 +56,70 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Read Stripe keys from store_settings using service role
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: settings } = await adminClient
-      .from("store_settings")
-      .select("key, value")
-      .in("key", ["stripeSecretKey", "stripeEnabled"]);
 
-    const settingsMap: Record<string, string> = {};
-    settings?.forEach((s: { key: string; value: string }) => {
-      settingsMap[s.key] = s.value;
-    });
-
-    if (settingsMap.stripeEnabled !== "true") {
+    // Stripe secret key must come from Edge Function secrets, never the database
+    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+    if (!stripeSecretKey.startsWith("sk_")) {
       return new Response(
-        JSON.stringify({ error: "Stripe payments are not enabled. Please configure Stripe in admin settings." }),
+        JSON.stringify({ error: "Stripe is not configured. Add the STRIPE_SECRET_KEY secret." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const stripeSecretKey = settingsMap.stripeSecretKey;
-    if (!stripeSecretKey || !stripeSecretKey.startsWith("sk_")) {
-      return new Response(
-        JSON.stringify({ error: "Stripe secret key is not configured. Please set it in admin settings." }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // Server-side price verification against the products table
+    const productIds = items.map((i: { id?: string }) => i.id).filter(Boolean);
+    if (productIds.length !== items.length) {
+      return new Response(JSON.stringify({ error: "Each item requires a product id" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
-    // Create Stripe Checkout Session
-    const lineItems = items.map((item: { name: string; price: number; quantity: number; image?: string }) => ({
+    const { data: products, error: productsError } = await adminClient
+      .from("products")
+      .select("id, name, price, images")
+      .in("id", productIds);
+
+    if (productsError || !products) {
+      return new Response(JSON.stringify({ error: "Unable to verify products" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const productMap = new Map(products.map((p: { id: string; name: string; price: number; images: string[] | null }) => [p.id, p]));
+
+    const verifiedItems: { id: string; name: string; price: number; quantity: number; image?: string }[] = [];
+    for (const item of items) {
+      const product = productMap.get(item.id);
+      if (!product) {
+        return new Response(JSON.stringify({ error: "One or more products are unavailable" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      const quantity = Number(item.quantity);
+      if (!Number.isInteger(quantity) || quantity < 1 || quantity > 100) {
+        return new Response(JSON.stringify({ error: "Invalid quantity" }), {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      verifiedItems.push({
+        id: product.id,
+        name: product.name,
+        price: Number(product.price),
+        quantity,
+        image: typeof item.image === "string" && item.image.startsWith("http") ? item.image : product.images?.[0],
+      });
+    }
+
+    // Server-computed totals (client "total" is ignored for charging)
+    const subtotal = verifiedItems.reduce((sum, i) => sum + i.price * i.quantity, 0);
+    const verifiedTotal = Math.round((subtotal + (subtotal >= 100 ? 0 : 9.99)) * 100) / 100;
+
+    const lineItems = verifiedItems.map((item) => ({
       price_data: {
         currency: "eur",
         product_data: {
@@ -95,6 +130,7 @@ Deno.serve(async (req: Request) => {
       },
       quantity: item.quantity,
     }));
+
 
     const origin = req.headers.get("origin") || "https://emery-shop-hub.lovable.app";
 
@@ -120,8 +156,8 @@ Deno.serve(async (req: Request) => {
           return acc;
         }, {}),
         "metadata[user_id]": userId,
-        "metadata[coupon_code]": couponCode || "",
-        "metadata[total]": String(total),
+        "metadata[coupon_code]": typeof couponCode === "string" ? couponCode.slice(0, 64) : "",
+        "metadata[total]": String(verifiedTotal),
       }),
     });
 
@@ -130,25 +166,20 @@ Deno.serve(async (req: Request) => {
     if (!stripeResponse.ok) {
       console.error("Stripe error:", stripeData);
       return new Response(
-        JSON.stringify({ error: stripeData.error?.message || "Failed to create checkout session" }),
+        JSON.stringify({ error: "Failed to create checkout session" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Save order to database
+    // Save order to database using server-verified values
     await adminClient.from("orders").insert({
       user_id: userId,
-      total,
-      items: items.map((i: any) => ({
-        id: i.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-        image: i.image,
-      })),
+      total: verifiedTotal,
+      items: verifiedItems,
       shipping_address: shippingAddress || null,
       status: "pending",
     });
+
 
     return new Response(
       JSON.stringify({ url: stripeData.url, sessionId: stripeData.id }),
