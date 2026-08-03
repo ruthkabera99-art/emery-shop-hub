@@ -538,6 +538,16 @@ export type Database = {
         Args: { _content: string; _session_id: string }
         Returns: string
       }
+      validate_coupon: {
+        Args: { _code: string; _order_total: number }
+        Returns: {
+          code: string
+          discount_type: string
+          discount_value: number
+          message: string
+          valid: boolean
+        }[]
+      }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
