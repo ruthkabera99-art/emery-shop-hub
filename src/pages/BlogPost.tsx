@@ -107,8 +107,9 @@ const BlogPost = () => {
 
           <article
             className="prose prose-neutral dark:prose-invert max-w-none"
-            dangerouslySetInnerHTML={{ __html: post.content }}
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(post.content) }}
           />
+
         </div>
       </main>
       <Footer />
