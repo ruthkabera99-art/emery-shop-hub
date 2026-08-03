@@ -16,48 +16,34 @@ export const useCoupon = () => {
   const applyCoupon = async (code: string, orderTotal: number) => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from("coupons")
-        .select("*")
-        .eq("code", code.toUpperCase().trim())
-        .eq("is_active", true)
-        .maybeSingle();
+      const { data, error } = await supabase.rpc("validate_coupon", {
+        _code: code.toUpperCase().trim(),
+        _order_total: orderTotal,
+      });
 
       if (error) throw error;
 
-      if (!data) {
+      const row = Array.isArray(data) ? data[0] : data;
+
+      if (!row) {
         setCoupon({ valid: false, code, discountType: "fixed", discountValue: 0, message: "Invalid coupon code" });
         return;
       }
 
-      if (data.expires_at && new Date(data.expires_at) < new Date()) {
-        setCoupon({ valid: false, code, discountType: "fixed", discountValue: 0, message: "This coupon has expired" });
-        return;
-      }
-
-      if (data.max_uses && data.used_count >= data.max_uses) {
-        setCoupon({ valid: false, code, discountType: "fixed", discountValue: 0, message: "This coupon has reached its usage limit" });
-        return;
-      }
-
-      if (data.min_order_amount && orderTotal < Number(data.min_order_amount)) {
-        setCoupon({
-          valid: false, code,
-          discountType: data.discount_type as "percentage" | "fixed",
-          discountValue: Number(data.discount_value),
-          message: `Minimum order of €${Number(data.min_order_amount).toFixed(0)} required`,
-        });
-        return;
-      }
+      const discountType = (row.discount_type as "percentage" | "fixed") ?? "fixed";
+      const discountValue = Number(row.discount_value ?? 0);
+      const message = row.valid
+        ? discountType === "percentage"
+          ? `${discountValue}% off applied!`
+          : `€${discountValue.toFixed(2)} off applied!`
+        : row.message || "Invalid coupon code";
 
       setCoupon({
-        valid: true,
-        code: data.code,
-        discountType: data.discount_type as "percentage" | "fixed",
-        discountValue: Number(data.discount_value),
-        message: data.discount_type === "percentage"
-          ? `${Number(data.discount_value)}% off applied!`
-          : `€${Number(data.discount_value).toFixed(2)} off applied!`,
+        valid: !!row.valid,
+        code: row.code || code,
+        discountType,
+        discountValue,
+        message,
       });
     } catch {
       setCoupon({ valid: false, code, discountType: "fixed", discountValue: 0, message: "Error validating coupon" });
@@ -65,6 +51,7 @@ export const useCoupon = () => {
       setLoading(false);
     }
   };
+
 
   const removeCoupon = () => setCoupon(null);
 
