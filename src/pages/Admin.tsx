@@ -108,7 +108,6 @@ interface SettingsData {
   phone: string;
   address: string;
   stripePublishableKey: string;
-  stripeSecretKey: string;
   stripeEnabled: string;
 }
 
@@ -144,7 +143,6 @@ const defaultSettings: SettingsData = {
   phone: "+250 788 000 000",
   address: "Kigali, Rwanda",
   stripePublishableKey: "",
-  stripeSecretKey: "",
   stripeEnabled: "false",
 };
 
@@ -481,7 +479,6 @@ const useAdminSettings = () => {
         phone: map.phone || defaultSettings.phone,
         address: map.address || defaultSettings.address,
         stripePublishableKey: map.stripePublishableKey || "",
-        stripeSecretKey: map.stripeSecretKey || "",
         stripeEnabled: map.stripeEnabled || "false",
       });
     }
