@@ -15,7 +15,7 @@ const corsHeaders = {
 
 interface HistoryMsg { role: "user" | "assistant"; content: string }
 
-const MODEL = "google/gemini-3.6-flash";
+const MODEL = "openai/gpt-5.6-sol";
 const AI_TIMEOUT_MS = 15_000;
 
 // Module-scope cache (persists across invocations on a warm isolate)
@@ -208,8 +208,8 @@ ${knowledge || "(no training entries yet)"}`;
         body: JSON.stringify({
           model: MODEL,
           messages,
-          max_tokens: 1600,
-          temperature: 0.7,
+          max_completion_tokens: 900,
+          reasoning_effort: "none",
         }),
         signal: ac.signal,
       });
