@@ -1251,16 +1251,13 @@ const Admin = () => {
                       placeholder="pk_live_... or pk_test_..."
                     />
                   </div>
-                  <div>
-                    <Label className="mb-1.5 block">Secret Key</Label>
-                    <Input
-                      type="password"
-                      value={adminSettings.settings.stripeSecretKey}
-                      onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, stripeSecretKey: e.target.value })}
-                      placeholder="sk_live_... or sk_test_..."
-                    />
-                    <p className="text-xs text-muted-foreground mt-1">Your secret key is stored securely and never exposed to clients.</p>
+                  <div className="rounded-md border border-border bg-muted/40 p-3">
+                    <p className="text-xs text-muted-foreground">
+                      The Stripe <strong>secret key</strong> is no longer stored in the database. It is kept as an
+                      Edge Function secret (<code>STRIPE_SECRET_KEY</code>) so it can never be read by site visitors.
+                    </p>
                   </div>
+
                   <Button onClick={() => adminSettings.saveSettings(adminSettings.settings)} className="bg-accent text-accent-foreground hover:bg-accent/90">
                     <Save className="h-4 w-4 mr-1" /> Save Stripe Settings
                   </Button>
