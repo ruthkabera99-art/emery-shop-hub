@@ -122,10 +122,10 @@ Deno.serve(async (req) => {
   try {
     const { message, history, warmup } = await req.json() as { message?: string; history?: HistoryMsg[]; warmup?: boolean };
 
-    // Warmup ping: pre-load knowledge cache + return immediately. Keeps the
-    // isolate hot so the next real message is sub-second.
+    // Warmup ping: pre-load knowledge + catalog cache and return immediately.
+    // Keeps the isolate hot so the next real message is sub-second.
     if (warmup) {
-      await getKnowledge();
+      await Promise.all([getKnowledge(), getCatalog()]);
       return new Response(JSON.stringify({ ok: true, warm: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
