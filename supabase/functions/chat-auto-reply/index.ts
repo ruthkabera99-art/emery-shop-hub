@@ -60,8 +60,9 @@ async function getCatalog(): Promise<string> {
   const { data } = await supabase
     .from("products")
     .select("name, brand, category, price, badge, in_stock, stock_quantity, rating, reviews_count, description")
+    .order("category", { ascending: true })
     .order("rating", { ascending: false })
-    .limit(80);
+    .limit(250);
 
   const catalog = (data ?? [])
     .map((p) => {
@@ -71,7 +72,7 @@ async function getCatalog(): Promise<string> {
           ? `only ${p.stock_quantity} left`
           : "in stock";
       const rating = p.rating ? `${p.rating}★ (${p.reviews_count ?? 0} reviews)` : "new";
-      const desc = (p.description ?? "").replace(/\s+/g, " ").slice(0, 160);
+      const desc = (p.description ?? "").replace(/\s+/g, " ").slice(0, 110);
       return `- ${p.name} | ${p.brand} | ${p.category} | €${p.price} | ${stock} | ${rating}${p.badge ? ` | ${p.badge}` : ""}${desc ? ` | ${desc}` : ""}`;
     })
     .join("\n");
