@@ -156,8 +156,8 @@ Deno.serve(async (req: Request) => {
           return acc;
         }, {}),
         "metadata[user_id]": userId,
-        "metadata[coupon_code]": couponCode || "",
-        "metadata[total]": String(total),
+        "metadata[coupon_code]": typeof couponCode === "string" ? couponCode.slice(0, 64) : "",
+        "metadata[total]": String(verifiedTotal),
       }),
     });
 
@@ -166,25 +166,20 @@ Deno.serve(async (req: Request) => {
     if (!stripeResponse.ok) {
       console.error("Stripe error:", stripeData);
       return new Response(
-        JSON.stringify({ error: stripeData.error?.message || "Failed to create checkout session" }),
+        JSON.stringify({ error: "Failed to create checkout session" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Save order to database
+    // Save order to database using server-verified values
     await adminClient.from("orders").insert({
       user_id: userId,
-      total,
-      items: items.map((i: any) => ({
-        id: i.id,
-        name: i.name,
-        price: i.price,
-        quantity: i.quantity,
-        image: i.image,
-      })),
+      total: verifiedTotal,
+      items: verifiedItems,
       shipping_address: shippingAddress || null,
       status: "pending",
     });
+
 
     return new Response(
       JSON.stringify({ url: stripeData.url, sessionId: stripeData.id }),
