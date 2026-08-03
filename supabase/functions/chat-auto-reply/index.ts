@@ -15,12 +15,14 @@ const corsHeaders = {
 
 interface HistoryMsg { role: "user" | "assistant"; content: string }
 
-const MODEL = "google/gemini-3.1-flash-lite";
-const AI_TIMEOUT_MS = 10_000;
+const MODEL = "google/gemini-3.6-flash";
+const AI_TIMEOUT_MS = 15_000;
 
 // Module-scope cache (persists across invocations on a warm isolate)
 let cachedKnowledge: string | null = null;
 let cachedAt = 0;
+let cachedCatalog: string | null = null;
+let catalogAt = 0;
 const CACHE_TTL_MS = 300_000; // 5 min
 
 const supabase = createClient(
@@ -48,6 +50,37 @@ async function getKnowledge(): Promise<string> {
   cachedAt = now;
   return knowledge;
 }
+
+// Live product catalog so the assistant can genuinely recommend and explain
+// products instead of speaking in generalities.
+async function getCatalog(): Promise<string> {
+  const now = Date.now();
+  if (cachedCatalog !== null && now - catalogAt < CACHE_TTL_MS) return cachedCatalog;
+
+  const { data } = await supabase
+    .from("products")
+    .select("name, brand, category, price, badge, in_stock, stock_quantity, rating, reviews_count, description")
+    .order("rating", { ascending: false })
+    .limit(80);
+
+  const catalog = (data ?? [])
+    .map((p) => {
+      const stock = p.in_stock === false || (p.stock_quantity ?? 0) <= 0
+        ? "SOLD OUT"
+        : (p.stock_quantity ?? 0) <= 5
+          ? `only ${p.stock_quantity} left`
+          : "in stock";
+      const rating = p.rating ? `${p.rating}★ (${p.reviews_count ?? 0} reviews)` : "new";
+      const desc = (p.description ?? "").replace(/\s+/g, " ").slice(0, 160);
+      return `- ${p.name} | ${p.brand} | ${p.category} | €${p.price} | ${stock} | ${rating}${p.badge ? ` | ${p.badge}` : ""}${desc ? ` | ${desc}` : ""}`;
+    })
+    .join("\n");
+
+  cachedCatalog = catalog;
+  catalogAt = now;
+  return catalog;
+}
+
 
 interface MetricRow {
   latency_ms: number;
