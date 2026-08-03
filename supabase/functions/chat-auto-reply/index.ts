@@ -15,12 +15,14 @@ const corsHeaders = {
 
 interface HistoryMsg { role: "user" | "assistant"; content: string }
 
-const MODEL = "google/gemini-3.1-flash-lite";
-const AI_TIMEOUT_MS = 10_000;
+const MODEL = "openai/gpt-5.6-sol";
+const AI_TIMEOUT_MS = 15_000;
 
 // Module-scope cache (persists across invocations on a warm isolate)
 let cachedKnowledge: string | null = null;
 let cachedAt = 0;
+let cachedCatalog: string | null = null;
+let catalogAt = 0;
 const CACHE_TTL_MS = 300_000; // 5 min
 
 const supabase = createClient(
@@ -48,6 +50,38 @@ async function getKnowledge(): Promise<string> {
   cachedAt = now;
   return knowledge;
 }
+
+// Live product catalog so the assistant can genuinely recommend and explain
+// products instead of speaking in generalities.
+async function getCatalog(): Promise<string> {
+  const now = Date.now();
+  if (cachedCatalog !== null && now - catalogAt < CACHE_TTL_MS) return cachedCatalog;
+
+  const { data } = await supabase
+    .from("products")
+    .select("name, brand, category, price, badge, in_stock, stock_quantity, rating, reviews_count, description")
+    .order("category", { ascending: true })
+    .order("rating", { ascending: false })
+    .limit(250);
+
+  const catalog = (data ?? [])
+    .map((p) => {
+      const stock = p.in_stock === false || (p.stock_quantity ?? 0) <= 0
+        ? "SOLD OUT"
+        : (p.stock_quantity ?? 0) <= 5
+          ? `only ${p.stock_quantity} left`
+          : "in stock";
+      const rating = p.rating ? `${p.rating}★ (${p.reviews_count ?? 0} reviews)` : "new";
+      const desc = (p.description ?? "").replace(/\s+/g, " ").slice(0, 110);
+      return `- ${p.name} | ${p.brand} | ${p.category} | €${p.price} | ${stock} | ${rating}${p.badge ? ` | ${p.badge}` : ""}${desc ? ` | ${desc}` : ""}`;
+    })
+    .join("\n");
+
+  cachedCatalog = catalog;
+  catalogAt = now;
+  return catalog;
+}
+
 
 interface MetricRow {
   latency_ms: number;
@@ -89,10 +123,10 @@ Deno.serve(async (req) => {
   try {
     const { message, history, warmup } = await req.json() as { message?: string; history?: HistoryMsg[]; warmup?: boolean };
 
-    // Warmup ping: pre-load knowledge cache + return immediately. Keeps the
-    // isolate hot so the next real message is sub-second.
+    // Warmup ping: pre-load knowledge + catalog cache and return immediately.
+    // Keeps the isolate hot so the next real message is sub-second.
     if (warmup) {
-      await getKnowledge();
+      await Promise.all([getKnowledge(), getCatalog()]);
       return new Response(JSON.stringify({ ok: true, warm: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
@@ -108,21 +142,50 @@ Deno.serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const knowledge = await getKnowledge();
+    const [knowledge, catalog] = await Promise.all([getKnowledge(), getCatalog()]);
     knowledgeChars = knowledge.length;
     messageChars = message.length;
 
-    const systemPrompt = `You are the friendly AI assistant for an online sneaker store.
-Reply concisely (1–2 short sentences), in the visitor's language, and stay strictly on-topic.
-Use ONLY the knowledge below — if something isn't covered, say a human agent will follow up shortly.
-Never invent prices, stock, order numbers, tracking codes, or policies.
+    const systemPrompt = `You are "Emery", the senior personal shopping advisor and customer-support specialist for Emery Collection Shop — a premium online footwear store (sneakers, Jordans, boots, Italian leather shoes, loafers, dress shoes). Currency is Euro (€).
 
-KNOWLEDGE BASE:
+YOUR MISSION
+Act like a real, warm, expert human sales assistant on a shop floor — not a robot FAQ. You understand shoes deeply (materials, construction, comfort, sizing, styling, care) and you help every visitor confidently choose the RIGHT pair, then explain clearly WHY it is right for them so they genuinely fall in love with it.
+
+HOW TO CONSULT (in order)
+1. Understand first. If the need is vague, ask ONE short, smart qualifying question (occasion, style, budget, size, or usual brand) — never a list of questions.
+2. Recommend concretely. Name 1–3 actual products from the CATALOG with their exact name and € price. Never invent a product, price, or discount.
+3. Explain in full and persuasively. For the pick you recommend, cover:
+   • What it is and who it's perfect for
+   • Material & build quality (leather, suede, mesh, rubber outsole, stitching) and what that means in real life
+   • Comfort & fit (cushioning, support, sizing advice, break-in, wide/narrow feet)
+   • Style & versatility — 2–3 concrete outfit/occasion pairings
+   • Durability & care in one line
+   • Value: why this price is worth it vs. alternatives
+4. Handle objections honestly (price, sizing doubt, "not sure it suits me") with empathy and facts, then reassure with the store's real policies from the KNOWLEDGE BASE.
+5. Close gently. End with a light next step: "Want me to check your size?", "Shall I show you the matching color?", "Ready to add it to your cart?"
+
+STYLE
+- Sound human, warm, confident, enthusiastic — never pushy, never fake.
+- Reply in the visitor's own language.
+- Use short paragraphs or 3–5 bullet points so it is easy to read on mobile. Be detailed when explaining a product (roughly 80–160 words), but short and snappy for simple questions (greetings, shipping, order status).
+- Use the customer's words back to them. Occasionally use a tasteful emoji (max 1–2).
+- Never pressure, never fabricate scarcity, never promise anything not in the KNOWLEDGE BASE.
+
+HARD RULES
+- Prices, stock levels and product names must come ONLY from the CATALOG below.
+- Policies (shipping, returns, payment, warranty) must come ONLY from the KNOWLEDGE BASE. If it isn't there, say a human teammate will confirm shortly — do not guess.
+- Never invent order numbers, tracking codes, coupon codes, or discounts.
+- Stay on-topic: footwear, the store, orders, and styling.
+
+LIVE PRODUCT CATALOG (name | brand | category | price | stock | rating | badge | description):
+${catalog || "(catalog unavailable right now — recommend generally and offer a human follow-up)"}
+
+KNOWLEDGE BASE (store policies & admin-provided facts):
 ${knowledge || "(no training entries yet)"}`;
 
-    const trimmedHistory = (history ?? []).slice(-6).map((h) => ({
+    const trimmedHistory = (history ?? []).slice(-10).map((h) => ({
       role: h.role,
-      content: typeof h.content === "string" ? h.content.slice(0, 500) : "",
+      content: typeof h.content === "string" ? h.content.slice(0, 900) : "",
     }));
     historyCount = trimmedHistory.length;
 
@@ -146,8 +209,8 @@ ${knowledge || "(no training entries yet)"}`;
         body: JSON.stringify({
           model: MODEL,
           messages,
-          max_tokens: 120,
-          temperature: 0.3,
+          max_completion_tokens: 900,
+          reasoning_effort: "none",
         }),
         signal: ac.signal,
       });
