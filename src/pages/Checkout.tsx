@@ -8,10 +8,18 @@ import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Truck, ShieldCheck, Tag, X, Check } from "lucide-react";
+import { CreditCard, Truck, ShieldCheck, Tag, X, Check, Loader2 } from "lucide-react";
 import { useCoupon } from "@/hooks/useCoupon";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
+
+const formatCardNumber = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+
+const formatExpiry = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 4);
+  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+};
 
 const Checkout = () => {
   const { items, totalPrice, totalItems, clearCart } = useCart();
@@ -20,6 +28,9 @@ const Checkout = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
   const { coupon, loading: couponLoading, applyCoupon, removeCoupon, calculateDiscount } = useCoupon();
 
   const discount = calculateDiscount(totalPrice);
@@ -102,50 +113,91 @@ const Checkout = () => {
             {/* Form */}
             <div className="lg:col-span-2 space-y-8">
               {/* Contact */}
-              <div className="bg-card rounded-lg p-6 shadow-soft space-y-4">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft space-y-4 transition-shadow hover:shadow-md">
                 <h2 className="font-display text-xl font-bold">Contact Information</h2>
                 <div className="grid md:grid-cols-2 gap-4">
-                  <div><label className="text-sm font-medium mb-1 block">First Name *</label><Input required placeholder="John" /></div>
-                  <div><label className="text-sm font-medium mb-1 block">Last Name *</label><Input required placeholder="Doe" /></div>
-                  <div><label className="text-sm font-medium mb-1 block">Email *</label><Input required type="email" placeholder="john@example.com" /></div>
-                  <div><label className="text-sm font-medium mb-1 block">Phone *</label><Input required type="tel" placeholder="+33 6 12 34 56 78" /></div>
+                  <div><label htmlFor="firstName" className="text-sm font-medium mb-1.5 block">First Name *</label><Input id="firstName" name="firstName" autoComplete="given-name" required placeholder="John" /></div>
+                  <div><label htmlFor="lastName" className="text-sm font-medium mb-1.5 block">Last Name *</label><Input id="lastName" name="lastName" autoComplete="family-name" required placeholder="Doe" /></div>
+                  <div><label htmlFor="email" className="text-sm font-medium mb-1.5 block">Email *</label><Input id="email" name="email" autoComplete="email" inputMode="email" required type="email" placeholder="john@example.com" /></div>
+                  <div><label htmlFor="phone" className="text-sm font-medium mb-1.5 block">Phone *</label><Input id="phone" name="phone" autoComplete="tel" inputMode="tel" required type="tel" placeholder="+33 6 12 34 56 78" /></div>
                 </div>
               </div>
 
               {/* Shipping */}
-              <div className="bg-card rounded-lg p-6 shadow-soft space-y-4">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft space-y-4 transition-shadow hover:shadow-md">
                 <h2 className="font-display text-xl font-bold flex items-center gap-2"><Truck className="h-5 w-5 text-accent" /> Shipping Address</h2>
                 <div className="space-y-4">
-                  <div><label className="text-sm font-medium mb-1 block">Street Address *</label><Input required placeholder="123 Rue de Rivoli" /></div>
+                  <div><label htmlFor="street" className="text-sm font-medium mb-1.5 block">Street Address *</label><Input id="street" name="street" autoComplete="street-address" required placeholder="123 Rue de Rivoli" /></div>
                   <div className="grid md:grid-cols-3 gap-4">
-                    <div><label className="text-sm font-medium mb-1 block">City *</label><Input required placeholder="Paris" /></div>
-                    <div><label className="text-sm font-medium mb-1 block">Postal Code *</label><Input required placeholder="75001" /></div>
-                    <div><label className="text-sm font-medium mb-1 block">Country *</label><Input required placeholder="France" /></div>
+                    <div><label htmlFor="city" className="text-sm font-medium mb-1.5 block">City *</label><Input id="city" name="city" autoComplete="address-level2" required placeholder="Paris" /></div>
+                    <div><label htmlFor="postal" className="text-sm font-medium mb-1.5 block">Postal Code *</label><Input id="postal" name="postal" autoComplete="postal-code" inputMode="numeric" required placeholder="75001" /></div>
+                    <div><label htmlFor="country" className="text-sm font-medium mb-1.5 block">Country *</label><Input id="country" name="country" autoComplete="country-name" required placeholder="France" /></div>
                   </div>
                 </div>
               </div>
 
               {/* Payment */}
-              <div className="bg-card rounded-lg p-6 shadow-soft space-y-4">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft space-y-4 transition-shadow hover:shadow-md">
                 <h2 className="font-display text-xl font-bold flex items-center gap-2"><CreditCard className="h-5 w-5 text-accent" /> Payment Details</h2>
                 <div className="space-y-4">
-                  <div><label className="text-sm font-medium mb-1 block">Card Number *</label><Input required placeholder="4242 4242 4242 4242" /></div>
+                  <div>
+                    <label htmlFor="cardNumber" className="text-sm font-medium mb-1.5 block">Card Number *</label>
+                    <Input
+                      id="cardNumber"
+                      name="cardNumber"
+                      autoComplete="cc-number"
+                      inputMode="numeric"
+                      maxLength={19}
+                      required
+                      placeholder="4242 4242 4242 4242"
+                      value={cardNumber}
+                      onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
+                    />
+                  </div>
                   <div className="grid grid-cols-2 gap-4">
-                    <div><label className="text-sm font-medium mb-1 block">Expiry Date *</label><Input required placeholder="MM/YY" /></div>
-                    <div><label className="text-sm font-medium mb-1 block">CVC *</label><Input required placeholder="123" /></div>
+                    <div>
+                      <label htmlFor="cardExpiry" className="text-sm font-medium mb-1.5 block">Expiry Date *</label>
+                      <Input
+                        id="cardExpiry"
+                        name="cardExpiry"
+                        autoComplete="cc-exp"
+                        inputMode="numeric"
+                        maxLength={5}
+                        required
+                        placeholder="MM/YY"
+                        value={cardExpiry}
+                        onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="cardCvc" className="text-sm font-medium mb-1.5 block">CVC *</label>
+                      <Input
+                        id="cardCvc"
+                        name="cardCvc"
+                        autoComplete="cc-csc"
+                        inputMode="numeric"
+                        maxLength={4}
+                        required
+                        placeholder="123"
+                        value={cardCvc}
+                        onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                      />
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground mt-2">
-                  <ShieldCheck className="h-4 w-4 text-green-600" /> Your payment is secured with 256-bit SSL encryption
+                  <ShieldCheck className="h-4 w-4 text-accent" /> Your payment is secured with 256-bit SSL encryption
                 </div>
               </div>
+
             </div>
 
             {/* Order Summary */}
-            <div className="h-fit space-y-4">
-              <div className="bg-card rounded-lg p-6 shadow-soft">
+            <div className="h-fit space-y-4 lg:sticky lg:top-24">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft">
                 <h2 className="font-display text-xl font-bold mb-4">Order Summary</h2>
-                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto scroll-smooth pr-1">
+
                   {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
                       <img src={getImage(item.image)} alt={item.name} className="w-12 h-12 rounded-md object-cover" />
@@ -179,9 +231,16 @@ const Checkout = () => {
                       <Input
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (couponCode.trim() && !couponLoading) applyCoupon(couponCode, totalPrice);
+                          }
+                        }}
                         placeholder="Enter code"
                         className="text-sm uppercase"
                       />
+
                       <Button
                         type="button"
                         variant="outline"
@@ -212,9 +271,14 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold h-12 text-base">
-                {loading ? "Processing..." : `Book & Pay ${formatPrice(total)}`}
+              <Button type="submit" disabled={loading} aria-busy={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold h-12 text-base transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70">
+                {loading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Processing…</span>
+                ) : (
+                  `Book & Pay ${formatPrice(total)}`
+                )}
               </Button>
+
               <p className="text-xs text-center text-muted-foreground">Free shipping on orders over €100 · 30-day returns</p>
             </div>
           </div>
