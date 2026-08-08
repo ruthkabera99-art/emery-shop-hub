@@ -55,22 +55,29 @@ const Checkout = () => {
         // Redirect to Stripe Checkout
         clearCart();
         window.location.href = data.url;
-      } else if (data?.error) {
-        // Stripe not configured — fallback to demo flow
-        console.warn("Stripe not configured:", data.error);
-        toast({ title: "Demo Mode", description: "Stripe is not configured. Processing as demo order." });
-
-        await supabase.from("orders").insert({
-          user_id: user.id,
-          total,
-          items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
-          status: "pending",
-        });
-
-        const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
-        clearCart();
-        navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
+        return;
       }
+
+      // No hosted checkout URL (Stripe not configured, or unexpected response)
+      // -> never leave the user stuck on the payment step: complete as demo order.
+      if (data?.error) {
+        console.warn("Stripe not configured:", data.error);
+      } else {
+        console.warn("Checkout returned no URL:", data);
+      }
+      toast({ title: "Demo Mode", description: "Card payments aren't live yet — placing your order now." });
+
+      await supabase.from("orders").insert({
+        user_id: user.id,
+        total,
+        items: items.map((i) => ({ id: i.id, name: i.name, price: i.price, quantity: i.quantity, image: i.image })),
+        status: "pending",
+      });
+
+      const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
+      clearCart();
+      navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
+
     } catch (err: any) {
       console.error("Checkout error:", err);
       toast({ title: "Checkout Error", description: err.message || "Something went wrong.", variant: "destructive" });
