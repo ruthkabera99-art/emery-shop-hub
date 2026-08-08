@@ -8,7 +8,7 @@ import { formatPrice } from "@/lib/currency";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { CreditCard, Truck, ShieldCheck, Tag, X, Check } from "lucide-react";
+import { CreditCard, Truck, ShieldCheck, Tag, X, Check, Loader2 } from "lucide-react";
 import { useCoupon } from "@/hooks/useCoupon";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
