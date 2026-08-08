@@ -271,9 +271,14 @@ const Checkout = () => {
                   </div>
                 </div>
               </div>
-              <Button type="submit" disabled={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold h-12 text-base">
-                {loading ? "Processing..." : `Book & Pay ${formatPrice(total)}`}
+              <Button type="submit" disabled={loading} aria-busy={loading} className="w-full bg-accent text-accent-foreground hover:bg-accent/90 font-semibold h-12 text-base transition-all hover:scale-[1.01] active:scale-[0.99] disabled:opacity-70">
+                {loading ? (
+                  <span className="flex items-center gap-2"><Loader2 className="h-4 w-4 animate-spin" /> Processing…</span>
+                ) : (
+                  `Book & Pay ${formatPrice(total)}`
+                )}
               </Button>
+
               <p className="text-xs text-center text-muted-foreground">Free shipping on orders over €100 · 30-day returns</p>
             </div>
           </div>
