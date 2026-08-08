@@ -193,10 +193,11 @@ const Checkout = () => {
             </div>
 
             {/* Order Summary */}
-            <div className="h-fit space-y-4">
-              <div className="bg-card rounded-lg p-6 shadow-soft">
+            <div className="h-fit space-y-4 lg:sticky lg:top-24">
+              <div className="bg-card rounded-xl p-5 sm:p-6 shadow-soft">
                 <h2 className="font-display text-xl font-bold mb-4">Order Summary</h2>
-                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto">
+                <div className="space-y-3 mb-4 max-h-64 overflow-y-auto scroll-smooth pr-1">
+
                   {items.map((item) => (
                     <div key={item.id} className="flex items-center gap-3">
                       <img src={getImage(item.image)} alt={item.name} className="w-12 h-12 rounded-md object-cover" />
