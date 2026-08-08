@@ -231,9 +231,16 @@ const Checkout = () => {
                       <Input
                         value={couponCode}
                         onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            if (couponCode.trim() && !couponLoading) applyCoupon(couponCode, totalPrice);
+                          }
+                        }}
                         placeholder="Enter code"
                         className="text-sm uppercase"
                       />
+
                       <Button
                         type="button"
                         variant="outline"
