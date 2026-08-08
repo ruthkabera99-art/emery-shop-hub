@@ -13,6 +13,14 @@ import { useCoupon } from "@/hooks/useCoupon";
 import { useAuth } from "@/context/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 
+const formatCardNumber = (v: string) =>
+  v.replace(/\D/g, "").slice(0, 16).replace(/(.{4})/g, "$1 ").trim();
+
+const formatExpiry = (v: string) => {
+  const d = v.replace(/\D/g, "").slice(0, 4);
+  return d.length > 2 ? `${d.slice(0, 2)}/${d.slice(2)}` : d;
+};
+
 const Checkout = () => {
   const { items, totalPrice, totalItems, clearCart } = useCart();
   const navigate = useNavigate();
@@ -20,6 +28,9 @@ const Checkout = () => {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [couponCode, setCouponCode] = useState("");
+  const [cardNumber, setCardNumber] = useState("");
+  const [cardExpiry, setCardExpiry] = useState("");
+  const [cardCvc, setCardCvc] = useState("");
   const { coupon, loading: couponLoading, applyCoupon, removeCoupon, calculateDiscount } = useCoupon();
 
   const discount = calculateDiscount(totalPrice);
