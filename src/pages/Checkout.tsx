@@ -203,10 +203,25 @@ const Checkout = () => {
       }
 
       toast({ title: "Demo Mode", description: "Card payments aren't live yet — placing your order now." });
-      await supabase.from("orders").insert({ user_id: user.id, total, items: payload, status: "pending" });
+      const shippingAddress = {
+        name: `${fields.firstName} ${fields.lastName}`.trim(),
+        email: fields.email,
+        phone: fields.phone,
+        street: fields.street,
+        city: fields.city,
+        postal: fields.postal,
+        country: fields.country,
+      };
+      const { data: inserted } = await supabase
+        .from("orders")
+        .insert({ user_id: user.id, total, items: payload, status: "pending", shipping_address: shippingAddress })
+        .select("id")
+        .maybeSingle();
       const orderId = `EC-${Date.now().toString(36).toUpperCase()}`;
       clearCart();
-      navigate(`/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}`);
+      navigate(
+        `/booking-confirmation?order=${orderId}&total=${total.toFixed(2)}${inserted?.id ? `&id=${inserted.id}` : ""}`
+      );
     } catch (err: any) {
       setPayError(err?.message || "Payment failed. Please check your details and try again.");
       requestAnimationFrame(() => errorRef.current?.scrollIntoView({ behavior: "smooth", block: "center" }));
