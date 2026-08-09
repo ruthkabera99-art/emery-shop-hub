@@ -228,7 +228,7 @@ const Checkout = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, items, total, coupon, clearCart, navigate, toast]);
+  }, [user, items, total, coupon, clearCart, navigate, toast, fields]);
 
   const handleSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
