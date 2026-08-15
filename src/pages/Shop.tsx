@@ -11,6 +11,7 @@ import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import SEOHead from "@/components/SEOHead";
 import JsonLd from "@/components/JsonLd";
+import { getImage } from "@/lib/images";
 
 const ITEMS_PER_PAGE = 12;
 
