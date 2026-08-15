@@ -99,6 +99,12 @@ const Shop = () => {
 
   const hasActiveFilters = searchQuery || selectedBrands.length > 0 || priceRange[0] > 0 || priceRange[1] < maxPrice || minRating > 0;
 
+  const categoryLabel =
+    categories.find((c) => c.slug === activeCategory)?.name ??
+    (activeCategory === "all" ? "All" : activeCategory);
+  const canonicalPath = activeCategory === "all" ? "/shop" : `/shop?category=${activeCategory}`;
+  const shareImage = getImage(paginated[0]?.image);
+
   return (
     <div className="min-h-screen">
       <SEOHead
