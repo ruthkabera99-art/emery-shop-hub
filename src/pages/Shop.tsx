@@ -101,7 +101,22 @@ const Shop = () => {
 
   return (
     <div className="min-h-screen">
-      <SEOHead title="Shop Premium Shoes | Emery Collection" description="Browse our full collection of premium sneakers, boots, heels & sandals. Free shipping on all orders." canonical="https://emerycollectionshop.store/shop" />
+      <SEOHead
+        title={
+          activeCategory === "all"
+            ? "Shop Premium Shoes | Emery Collection Shop"
+            : `${categoryLabel} Shoes — Shop the Collection | Emery Collection Shop`
+        }
+        description={
+          activeCategory === "all"
+            ? "Browse the full Emery Collection: sneakers, winter boots, Italian leather shoes, heels and sandals from €10. Free EU shipping over €100 and 30-day returns."
+            : `Shop ${categoryLabel.toLowerCase()} footwear at Emery Collection — ${filtered.length} styles from €10, free EU shipping over €100 and 30-day returns.`
+        }
+        canonical={canonicalPath}
+        image={shareImage}
+        imageAlt={`${categoryLabel} shoes at Emery Collection Shop`}
+        noindex={Boolean(hasActiveFilters)}
+      />
       <JsonLd
         id="shop"
         data={{
