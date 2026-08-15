@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Search, SlidersHorizontal, X, ChevronDown } from "lucide-react";
 import { Slider } from "@/components/ui/slider";
 import SEOHead from "@/components/SEOHead";
+import JsonLd from "@/components/JsonLd";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -101,6 +102,18 @@ const Shop = () => {
   return (
     <div className="min-h-screen">
       <SEOHead title="Shop Premium Shoes | Emery Collection" description="Browse our full collection of premium sneakers, boots, heels & sandals. Free shipping on all orders." canonical="https://emerycollectionshop.store/shop" />
+      <JsonLd
+        id="shop"
+        data={{
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "Shop Premium Shoes",
+          url: "https://emerycollectionshop.store/shop",
+          description:
+            "Browse the full Emery Collection range of sneakers, boots, Italian leather shoes, heels and sandals.",
+          isPartOf: { "@type": "WebSite", name: "Emery Collection Shop", url: "https://emerycollectionshop.store" },
+        }}
+      />
       <Navbar />
       <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
         <div className="flex items-center justify-between mb-4 sm:mb-8">
