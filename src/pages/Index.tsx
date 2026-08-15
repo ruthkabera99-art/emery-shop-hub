@@ -14,6 +14,8 @@ import { useVisitorTracker } from "@/hooks/useVisitorTracker";
 import { useSiteSettings } from "@/hooks/useSiteSettings";
 import { useMemo } from "react";
 import SEOHead from "@/components/SEOHead";
+import JsonLd from "@/components/JsonLd";
+
 
 const sectionComponents: Record<string, React.ReactNode> = {};
 
@@ -45,6 +47,41 @@ const Index = () => {
         description="Shop premium footwear at Emery Collection. Discover stylish sneakers, boots, heels & sandals with free shipping worldwide."
         canonical="https://emerycollectionshop.store/"
       />
+      <JsonLd
+        id="org"
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: "Emery Collection Shop",
+            url: "https://emerycollectionshop.store",
+            logo: "https://emerycollectionshop.store/favicon.ico",
+            description:
+              "Hand-picked sneakers, winter boots and Italian leather shoes. Free EU shipping over €100 and 30-day easy returns.",
+            contactPoint: [
+              {
+                "@type": "ContactPoint",
+                contactType: "customer support",
+                url: "https://emerycollectionshop.store/contact",
+                availableLanguage: ["English"],
+              },
+            ],
+            sameAs: [],
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "WebSite",
+            name: "Emery Collection Shop",
+            url: "https://emerycollectionshop.store",
+            potentialAction: {
+              "@type": "SearchAction",
+              target: "https://emerycollectionshop.store/shop?q={search_term_string}",
+              "query-input": "required name=search_term_string",
+            },
+          },
+        ]}
+      />
+
       <FlashSaleBanner />
       <Navbar />
       <main>

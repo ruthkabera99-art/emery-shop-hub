@@ -16,6 +16,8 @@ import ImageModal from "@/components/ImageModal";
 import OptimizedImage from "@/components/OptimizedImage";
 import ProductReviews from "@/components/ProductReviews";
 import SEOHead from "@/components/SEOHead";
+import JsonLd from "@/components/JsonLd";
+
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
   const { data: dbProducts = [], isLoading } = useProducts();
@@ -125,14 +127,64 @@ const ProductDetail = () => {
   const nextImage = () => setCurrentImageIndex((i) => (i + 1) % images.length);
   const prevImage = () => setCurrentImageIndex((i) => (i - 1 + images.length) % images.length);
 
+  const productUrl = `https://emerycollectionshop.store/product/${product.id}`;
+  const productImage = getImage(product.image);
+
   return (
     <div className="min-h-screen">
       <SEOHead
         title={`${product.name} | Emery Collection Shop`}
         description={product.description || `Buy ${product.name} from Emery Collection. Premium quality footwear at great prices.`}
-        canonical={`https://emerycollectionshop.store/product/${product.id}`}
+        canonical={productUrl}
+        type="product"
+      />
+      <JsonLd
+        id="product"
+        data={[
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: product.name,
+            image: productImage ? [productImage] : undefined,
+            description:
+              product.description ||
+              `${product.brand} ${product.name} — premium footwear from Emery Collection Shop.`,
+            sku: product.id,
+            brand: { "@type": "Brand", name: product.brand },
+            category: product.category,
+            aggregateRating:
+              product.reviews > 0
+                ? {
+                    "@type": "AggregateRating",
+                    ratingValue: product.rating,
+                    reviewCount: product.reviews,
+                  }
+                : undefined,
+            offers: {
+              "@type": "Offer",
+              url: productUrl,
+              priceCurrency: "EUR",
+              price: product.price.toFixed(2),
+              availability: isOutOfStock
+                ? "https://schema.org/OutOfStock"
+                : "https://schema.org/InStock",
+              itemCondition: "https://schema.org/NewCondition",
+              seller: { "@type": "Organization", name: "Emery Collection Shop" },
+            },
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "BreadcrumbList",
+            itemListElement: [
+              { "@type": "ListItem", position: 1, name: "Home", item: "https://emerycollectionshop.store/" },
+              { "@type": "ListItem", position: 2, name: "Shop", item: "https://emerycollectionshop.store/shop" },
+              { "@type": "ListItem", position: 3, name: product.name, item: productUrl },
+            ],
+          },
+        ]}
       />
       <Navbar />
+
       <main className="container mx-auto px-4 lg:px-8 py-6 sm:py-12">
         {/* Breadcrumb */}
         <nav className="flex items-center gap-2 text-sm text-muted-foreground mb-6 sm:mb-8">
