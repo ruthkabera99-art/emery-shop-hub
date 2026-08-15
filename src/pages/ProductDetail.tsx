@@ -133,10 +133,21 @@ const ProductDetail = () => {
   return (
     <div className="min-h-screen">
       <SEOHead
-        title={`${product.name} | Emery Collection Shop`}
-        description={product.description || `Buy ${product.name} from Emery Collection. Premium quality footwear at great prices.`}
+        title={`${product.name} — ${product.brand} | Emery Collection Shop`}
+        description={
+          product.description ||
+          `Buy the ${product.brand} ${product.name} for ${formatPrice(product.price)} at Emery Collection. ${isOutOfStock ? "Restocking soon." : "In stock now"} — free EU shipping over €100 and 30-day returns.`
+        }
         canonical={productUrl}
         type="product"
+        image={productImage}
+        imageAlt={`${product.brand} ${product.name}`}
+        product={{
+          price: product.price,
+          currency: "EUR",
+          availability: isOutOfStock ? "out of stock" : "in stock",
+          brand: product.brand,
+        }}
       />
       <JsonLd
         id="product"
