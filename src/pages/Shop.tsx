@@ -124,6 +124,17 @@ const Shop = () => {
   const shareImage = getImage(paginated[0]?.image);
   const pageSuffix = currentPage > 1 ? ` — Page ${currentPage}` : "";
 
+  // Keep the URL in sync so paginated/category views are shareable and crawlable.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "all") params.set("category", activeCategory);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [activeCategory, currentPage, searchParams, setSearchParams]);
+
+
   return (
     <div className="min-h-screen">
       <SEOHead
