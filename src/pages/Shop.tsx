@@ -28,9 +28,11 @@ const sortLabels: Record<SortOption, string> = {
 };
 
 const Shop = () => {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState(searchParams.get("category") || "all");
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
   const { data: products = [], isLoading } = useProducts();
+
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
