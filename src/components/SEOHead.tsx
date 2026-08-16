@@ -17,6 +17,10 @@ interface SEOHeadProps {
   description: string;
   /** Absolute URL or path (e.g. "/shop"). Sets <link rel=canonical> and og:url. */
   canonical?: string;
+  /** Previous page URL/path for rel="prev" (paginated lists). */
+  prev?: string;
+  /** Next page URL/path for rel="next" (paginated lists). */
+  next?: string;
   type?: string;
   /** Absolute URL or path of the social preview image. */
   image?: string;
