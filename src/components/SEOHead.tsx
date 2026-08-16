@@ -71,6 +71,8 @@ const SEOHead = ({
   title,
   description,
   canonical,
+  prev,
+  next,
   type = "website",
   image,
   imageAlt,
@@ -78,7 +80,10 @@ const SEOHead = ({
   product,
 }: SEOHeadProps) => {
   const url = absoluteUrl(canonical);
+  const prevUrl = absoluteUrl(prev);
+  const nextUrl = absoluteUrl(next);
   const img = absoluteUrl(image) || DEFAULT_OG_IMAGE;
+
 
   useEffect(() => {
     document.title = title;
