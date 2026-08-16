@@ -103,16 +103,30 @@ const Shop = () => {
   const categoryLabel =
     categories.find((c) => c.slug === activeCategory)?.name ??
     (activeCategory === "all" ? "All" : activeCategory);
-  const canonicalPath = activeCategory === "all" ? "/shop" : `/shop?category=${activeCategory}`;
+
+  // Paginated canonical / prev / next so Google can crawl the full product list.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const buildUrl = (p: number) => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "all") params.set("category", activeCategory);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/shop?${qs}` : "/shop";
+  };
+  const canonicalPath = buildUrl(currentPage);
+  const prevPath = currentPage > 1 ? buildUrl(currentPage - 1) : undefined;
+  const nextPath = currentPage < totalPages ? buildUrl(currentPage + 1) : undefined;
   const shareImage = getImage(paginated[0]?.image);
+  const pageSuffix = currentPage > 1 ? ` — Page ${currentPage}` : "";
 
   return (
     <div className="min-h-screen">
       <SEOHead
         title={
           activeCategory === "all"
-            ? "Shop Premium Shoes | Emery Collection Shop"
-            : `${categoryLabel} Shoes — Shop the Collection | Emery Collection Shop`
+            ? `Shop Premium Shoes${pageSuffix} | Emery Collection Shop`
+            : `${categoryLabel} Shoes — Shop the Collection${pageSuffix} | Emery Collection Shop`
         }
         description={
           activeCategory === "all"
@@ -120,10 +134,13 @@ const Shop = () => {
             : `Shop ${categoryLabel.toLowerCase()} footwear at Emery Collection — ${filtered.length} styles from €10, free EU shipping over €100 and 30-day returns.`
         }
         canonical={canonicalPath}
+        prev={prevPath}
+        next={nextPath}
         image={shareImage}
         imageAlt={`${categoryLabel} shoes at Emery Collection Shop`}
         noindex={Boolean(hasActiveFilters)}
       />
+
       <JsonLd
         id="shop"
         data={{
