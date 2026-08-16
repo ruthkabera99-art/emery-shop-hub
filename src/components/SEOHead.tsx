@@ -119,7 +119,10 @@ const SEOHead = ({
     setMeta("product:condition", product ? product.condition || "new" : undefined, true);
 
     setLink("canonical", url);
-  }, [title, description, url, type, img, imageAlt, noindex, product?.price, product?.currency, product?.availability, product?.brand, product?.condition]);
+    setLink("prev", prevUrl);
+    setLink("next", nextUrl);
+  }, [title, description, url, prevUrl, nextUrl, type, img, imageAlt, noindex, product?.price, product?.currency, product?.availability, product?.brand, product?.condition]);
+
 
   return null;
 };
