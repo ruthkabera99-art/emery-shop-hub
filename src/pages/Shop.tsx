@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
+
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import ProductCard from "@/components/ProductCard";
@@ -26,9 +28,11 @@ const sortLabels: Record<SortOption, string> = {
 };
 
 const Shop = () => {
-  const [activeCategory, setActiveCategory] = useState("all");
-  const [page, setPage] = useState(1);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeCategory, setActiveCategory] = useState(searchParams.get("category") || "all");
+  const [page, setPage] = useState(() => Math.max(1, Number(searchParams.get("page")) || 1));
   const { data: products = [], isLoading } = useProducts();
+
 
   // Search & Filter state
   const [searchQuery, setSearchQuery] = useState("");
@@ -103,16 +107,41 @@ const Shop = () => {
   const categoryLabel =
     categories.find((c) => c.slug === activeCategory)?.name ??
     (activeCategory === "all" ? "All" : activeCategory);
-  const canonicalPath = activeCategory === "all" ? "/shop" : `/shop?category=${activeCategory}`;
+
+  // Paginated canonical / prev / next so Google can crawl the full product list.
+  const totalPages = Math.max(1, Math.ceil(filtered.length / ITEMS_PER_PAGE));
+  const currentPage = Math.min(page, totalPages);
+  const buildUrl = (p: number) => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "all") params.set("category", activeCategory);
+    if (p > 1) params.set("page", String(p));
+    const qs = params.toString();
+    return qs ? `/shop?${qs}` : "/shop";
+  };
+  const canonicalPath = buildUrl(currentPage);
+  const prevPath = currentPage > 1 ? buildUrl(currentPage - 1) : undefined;
+  const nextPath = currentPage < totalPages ? buildUrl(currentPage + 1) : undefined;
   const shareImage = getImage(paginated[0]?.image);
+  const pageSuffix = currentPage > 1 ? ` — Page ${currentPage}` : "";
+
+  // Keep the URL in sync so paginated/category views are shareable and crawlable.
+  useEffect(() => {
+    const params = new URLSearchParams();
+    if (activeCategory !== "all") params.set("category", activeCategory);
+    if (currentPage > 1) params.set("page", String(currentPage));
+    if (params.toString() !== searchParams.toString()) {
+      setSearchParams(params, { replace: true });
+    }
+  }, [activeCategory, currentPage, searchParams, setSearchParams]);
+
 
   return (
     <div className="min-h-screen">
       <SEOHead
         title={
           activeCategory === "all"
-            ? "Shop Premium Shoes | Emery Collection Shop"
-            : `${categoryLabel} Shoes — Shop the Collection | Emery Collection Shop`
+            ? `Shop Premium Shoes${pageSuffix} | Emery Collection Shop`
+            : `${categoryLabel} Shoes — Shop the Collection${pageSuffix} | Emery Collection Shop`
         }
         description={
           activeCategory === "all"
@@ -120,10 +149,13 @@ const Shop = () => {
             : `Shop ${categoryLabel.toLowerCase()} footwear at Emery Collection — ${filtered.length} styles from €10, free EU shipping over €100 and 30-day returns.`
         }
         canonical={canonicalPath}
+        prev={prevPath}
+        next={nextPath}
         image={shareImage}
         imageAlt={`${categoryLabel} shoes at Emery Collection Shop`}
         noindex={Boolean(hasActiveFilters)}
       />
+
       <JsonLd
         id="shop"
         data={{
@@ -301,6 +333,15 @@ const Shop = () => {
                 </Button>
               </div>
             )}
+            {/* Crawlable pagination links (visually minimal, keep the full list discoverable) */}
+            {totalPages > 1 && (
+              <nav aria-label="Pagination" className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+                {prevPath && <a href={prevPath} rel="prev" className="hover:text-foreground">Previous page</a>}
+                <span>Page {currentPage} of {totalPages}</span>
+                {nextPath && <a href={nextPath} rel="next" className="hover:text-foreground">Next page</a>}
+              </nav>
+            )}
+
             {filtered.length === 0 && (
               <div className="text-center py-20">
                 <p className="text-muted-foreground mb-4">No products match your filters.</p>
