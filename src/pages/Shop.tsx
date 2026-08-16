@@ -333,6 +333,15 @@ const Shop = () => {
                 </Button>
               </div>
             )}
+            {/* Crawlable pagination links (visually minimal, keep the full list discoverable) */}
+            {totalPages > 1 && (
+              <nav aria-label="Pagination" className="mt-6 flex justify-center gap-4 text-xs text-muted-foreground">
+                {prevPath && <a href={prevPath} rel="prev" className="hover:text-foreground">Previous page</a>}
+                <span>Page {currentPage} of {totalPages}</span>
+                {nextPath && <a href={nextPath} rel="next" className="hover:text-foreground">Next page</a>}
+              </nav>
+            )}
+
             {filtered.length === 0 && (
               <div className="text-center py-20">
                 <p className="text-muted-foreground mb-4">No products match your filters.</p>
