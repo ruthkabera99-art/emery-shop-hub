@@ -27,7 +27,7 @@ import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
-  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck, Activity,
+  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck, Activity, Loader2,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
@@ -538,6 +538,49 @@ const Admin = () => {
   const adminSettings = useAdminSettings();
   const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
+
+  // ── Stripe secret key (stored in admin-only vault via edge function) ──
+  const [stripeKeyInput, setStripeKeyInput] = useState("");
+  const [stripeKeySaving, setStripeKeySaving] = useState(false);
+  const [stripeKeyStatus, setStripeKeyStatus] = useState<{ loading: boolean; configured: boolean; last4: string | null; mode: string | null }>({ loading: true, configured: false, last4: null, mode: null });
+
+  const refreshStripeKeyStatus = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-stripe-key", { method: "GET" });
+      if (error) throw error;
+      setStripeKeyStatus({ loading: false, configured: !!data?.configured, last4: data?.last4 ?? null, mode: data?.mode ?? null });
+    } catch {
+      setStripeKeyStatus((s) => ({ ...s, loading: false }));
+    }
+  }, []);
+
+  useEffect(() => { if (isAdmin) refreshStripeKeyStatus(); }, [isAdmin, refreshStripeKeyStatus]);
+
+  const saveStripeKey = async () => {
+    setStripeKeySaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-stripe-key", { method: "POST", body: { key: stripeKeyInput.trim() } });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Failed to save key");
+      toast({ title: "Stripe Key Saved", description: `${data.mode === "live" ? "Live" : "Test"} key ending in …${data.last4} is now active for checkout.` });
+      setStripeKeyInput("");
+      await refreshStripeKeyStatus();
+    } catch (e) {
+      toast({ title: "Could not save key", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setStripeKeySaving(false);
+    }
+  };
+
+  const removeStripeKey = async () => {
+    setStripeKeySaving(true);
+    try {
+      await supabase.functions.invoke("manage-stripe-key", { method: "DELETE" });
+      toast({ title: "Stripe Key Removed", description: "Checkout payments are disabled until a new key is saved." });
+      await refreshStripeKeyStatus();
+    } finally {
+      setStripeKeySaving(false);
+    }
+  };
 
   // Auth check
   useEffect(() => {
