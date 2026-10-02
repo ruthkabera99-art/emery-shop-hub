@@ -9,6 +9,7 @@ import { CheckCircle2, Package, Mail, ArrowRight, Printer, Truck, Loader2 } from
 import { supabase } from "@/integrations/supabase/client";
 import { formatPrice } from "@/lib/currency";
 import { getImage } from "@/lib/images";
+import { useAdminRole } from "@/hooks/useAdminRole";
 
 const statusLabel: Record<string, string> = {
   pending: "Payment received — preparing your order",
@@ -23,6 +24,8 @@ const BookingConfirmation = () => {
   const orderRef = params.get("id");
   const orderId = params.get("order") || (orderRef ? orderRef.slice(0, 8).toUpperCase() : "EC-UNKNOWN");
   const totalParam = params.get("total") || "0.00";
+  const dbOrderId = orderRef;
+  const { isAdmin } = useAdminRole();
 
   const { data: order, isLoading } = useQuery({
     queryKey: ["order", orderRef],
