@@ -1248,10 +1248,50 @@ const Admin = () => {
                       placeholder="pk_live_... or pk_test_..."
                     />
                   </div>
-                  <div className="rounded-md border border-border bg-muted/40 p-3">
+
+                  {/* Secret key — stored in the service-role-only vault via edge function */}
+                  <div className="rounded-md border border-border bg-muted/40 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Secret Key</Label>
+                      {stripeKeyStatus.loading ? (
+                        <span className="text-xs text-muted-foreground">Checking…</span>
+                      ) : stripeKeyStatus.configured ? (
+                        <span className="flex items-center gap-1 text-xs text-green-600">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          {stripeKeyStatus.mode === "live" ? "Live" : "Test"} key saved (…{stripeKeyStatus.last4})
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <XCircle className="h-3.5 w-3.5" /> Not configured
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      type="password"
+                      value={stripeKeyInput}
+                      onChange={(e) => setStripeKeyInput(e.target.value)}
+                      placeholder="sk_live_... or sk_test_..."
+                      autoComplete="off"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={stripeKeySaving || !stripeKeyInput.trim()}
+                        onClick={saveStripeKey}
+                        className="bg-accent text-accent-foreground hover:bg-accent/90"
+                      >
+                        {stripeKeySaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Save Secret Key
+                      </Button>
+                      {stripeKeyStatus.configured && (
+                        <Button size="sm" variant="outline" disabled={stripeKeySaving} onClick={removeStripeKey}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      The Stripe <strong>secret key</strong> is no longer stored in the database. It is kept as an
-                      Edge Function secret (<code>STRIPE_SECRET_KEY</code>) so it can never be read by site visitors.
+                      The key is saved in an encrypted, admin-only vault and is never visible to site visitors.
+                      Use an <strong>sk_live_</strong> key for real payments, <strong>sk_test_</strong> for testing.
                     </p>
                   </div>
 
