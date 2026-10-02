@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { products as initialProducts, testimonials as initialTestimonials, Product } from "@/data/products";
 import { getImage, imageMap } from "@/lib/images";
@@ -27,7 +27,7 @@ import {
   LayoutDashboard, Package, MessageSquare, Settings, Star, Euro, Users,
   TrendingUp, ArrowLeft, Trash2, Edit, Eye, Globe, Clock, Send, RefreshCw,
   Plus, Search, X, Save, Check, Palette, FileText, Menu as MenuIcon, Layout, ImageIcon,
-  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck, Activity,
+  ShoppingBag, Tag, BarChart3, CheckCircle, XCircle, ShieldCheck, Activity, Loader2,
 } from "lucide-react";
 import ImageUploader from "@/components/admin/ImageUploader";
 import ThemeCustomizer from "@/components/admin/ThemeCustomizer";
@@ -538,6 +538,49 @@ const Admin = () => {
   const adminSettings = useAdminSettings();
   const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
+
+  // ── Stripe secret key (stored in admin-only vault via edge function) ──
+  const [stripeKeyInput, setStripeKeyInput] = useState("");
+  const [stripeKeySaving, setStripeKeySaving] = useState(false);
+  const [stripeKeyStatus, setStripeKeyStatus] = useState<{ loading: boolean; configured: boolean; last4: string | null; mode: string | null }>({ loading: true, configured: false, last4: null, mode: null });
+
+  const refreshStripeKeyStatus = useCallback(async () => {
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-stripe-key", { method: "GET" });
+      if (error) throw error;
+      setStripeKeyStatus({ loading: false, configured: !!data?.configured, last4: data?.last4 ?? null, mode: data?.mode ?? null });
+    } catch {
+      setStripeKeyStatus((s) => ({ ...s, loading: false }));
+    }
+  }, []);
+
+  useEffect(() => { if (isAdmin) refreshStripeKeyStatus(); }, [isAdmin, refreshStripeKeyStatus]);
+
+  const saveStripeKey = async () => {
+    setStripeKeySaving(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("manage-stripe-key", { method: "POST", body: { key: stripeKeyInput.trim() } });
+      if (error || data?.error) throw new Error(data?.error || error?.message || "Failed to save key");
+      toast({ title: "Stripe Key Saved", description: `${data.mode === "live" ? "Live" : "Test"} key ending in …${data.last4} is now active for checkout.` });
+      setStripeKeyInput("");
+      await refreshStripeKeyStatus();
+    } catch (e) {
+      toast({ title: "Could not save key", description: e instanceof Error ? e.message : "Unknown error", variant: "destructive" });
+    } finally {
+      setStripeKeySaving(false);
+    }
+  };
+
+  const removeStripeKey = async () => {
+    setStripeKeySaving(true);
+    try {
+      await supabase.functions.invoke("manage-stripe-key", { method: "DELETE" });
+      toast({ title: "Stripe Key Removed", description: "Checkout payments are disabled until a new key is saved." });
+      await refreshStripeKeyStatus();
+    } finally {
+      setStripeKeySaving(false);
+    }
+  };
 
   // Auth check
   useEffect(() => {
@@ -1248,10 +1291,50 @@ const Admin = () => {
                       placeholder="pk_live_... or pk_test_..."
                     />
                   </div>
-                  <div className="rounded-md border border-border bg-muted/40 p-3">
+
+                  {/* Secret key — stored in the service-role-only vault via edge function */}
+                  <div className="rounded-md border border-border bg-muted/40 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label>Secret Key</Label>
+                      {stripeKeyStatus.loading ? (
+                        <span className="text-xs text-muted-foreground">Checking…</span>
+                      ) : stripeKeyStatus.configured ? (
+                        <span className="flex items-center gap-1 text-xs text-green-600">
+                          <CheckCircle className="h-3.5 w-3.5" />
+                          {stripeKeyStatus.mode === "live" ? "Live" : "Test"} key saved (…{stripeKeyStatus.last4})
+                        </span>
+                      ) : (
+                        <span className="flex items-center gap-1 text-xs text-muted-foreground">
+                          <XCircle className="h-3.5 w-3.5" /> Not configured
+                        </span>
+                      )}
+                    </div>
+                    <Input
+                      type="password"
+                      value={stripeKeyInput}
+                      onChange={(e) => setStripeKeyInput(e.target.value)}
+                      placeholder="sk_live_... or sk_test_..."
+                      autoComplete="off"
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        disabled={stripeKeySaving || !stripeKeyInput.trim()}
+                        onClick={saveStripeKey}
+                        className="bg-accent text-accent-foreground hover:bg-accent/90"
+                      >
+                        {stripeKeySaving ? <Loader2 className="h-4 w-4 mr-1 animate-spin" /> : <Save className="h-4 w-4 mr-1" />}
+                        Save Secret Key
+                      </Button>
+                      {stripeKeyStatus.configured && (
+                        <Button size="sm" variant="outline" disabled={stripeKeySaving} onClick={removeStripeKey}>
+                          Remove
+                        </Button>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">
-                      The Stripe <strong>secret key</strong> is no longer stored in the database. It is kept as an
-                      Edge Function secret (<code>STRIPE_SECRET_KEY</code>) so it can never be read by site visitors.
+                      The key is saved in an encrypted, admin-only vault and is never visible to site visitors.
+                      Use an <strong>sk_live_</strong> key for real payments, <strong>sk_test_</strong> for testing.
                     </p>
                   </div>
 

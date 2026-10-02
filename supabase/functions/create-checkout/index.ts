@@ -58,11 +58,20 @@ Deno.serve(async (req: Request) => {
 
     const adminClient = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Stripe secret key must come from Edge Function secrets, never the database
-    const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+    // Stripe secret key: prefer the Edge Function secret, fall back to the
+    // admin-managed key stored in the service-role-only admin_secrets table.
+    let stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY") ?? "";
+    if (!stripeSecretKey.startsWith("sk_")) {
+      const { data: secretRow } = await adminClient
+        .from("admin_secrets")
+        .select("value")
+        .eq("key", "STRIPE_SECRET_KEY")
+        .maybeSingle();
+      stripeSecretKey = secretRow?.value ?? "";
+    }
     if (!stripeSecretKey.startsWith("sk_")) {
       return new Response(
-        JSON.stringify({ error: "Stripe is not configured. Add the STRIPE_SECRET_KEY secret." }),
+        JSON.stringify({ error: "Stripe is not configured. Add your Stripe secret key in Admin → Settings." }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
