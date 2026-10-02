@@ -510,7 +510,9 @@ const useAdminSettings = () => {
 
 // ── Main Component ──
 const Admin = () => {
-  const [activeTab, setActiveTab] = useState("dashboard");
+  const [activeTab, setActiveTab] = useState(
+    () => new URLSearchParams(window.location.search).get("tab") || "dashboard"
+  );
   const [authChecked, setAuthChecked] = useState(false);
   const [user, setUser] = useState<any>(null);
   const [replyInput, setReplyInput] = useState("");

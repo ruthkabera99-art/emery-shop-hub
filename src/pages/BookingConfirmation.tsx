@@ -139,6 +139,13 @@ const BookingConfirmation = () => {
             <Button variant="outline" className="h-12" onClick={() => window.print()}>
               <Printer className="h-4 w-4 mr-2" /> Print receipt
             </Button>
+            {isAdmin && (
+              <Button asChild variant="secondary" className="sm:col-span-2 h-11">
+                <Link to={`/admin?tab=orders${dbOrderId ? `&order=${dbOrderId}` : ""}`}>
+                  Open in admin orders <ArrowRight className="h-4 w-4 ml-1" />
+                </Link>
+              </Button>
+            )}
             <Button asChild variant="ghost" className="sm:col-span-2 h-11">
               <Link to="/shop">Continue shopping</Link>
             </Button>
