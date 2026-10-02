@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { products as initialProducts, testimonials as initialTestimonials, Product } from "@/data/products";
 import { getImage, imageMap } from "@/lib/images";
