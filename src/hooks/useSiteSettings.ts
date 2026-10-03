@@ -61,8 +61,8 @@ export const defaultFooterConfig: FooterConfig = {
     { label: "Sports", url: "/shop" },
     { label: "Sale", url: "/shop" },
   ],
-  contactAddress: "123 Style Ave, New York, NY",
-  contactPhone: "(555) 123-4567",
+  contactAddress: "Kigali, Rwanda",
+  contactPhone: "+250 788 000 000",
   contactEmail: "hello@emerycollection.com",
   copyrightText: "© 2026 Emery Collection Shop. All rights reserved.",
 };
