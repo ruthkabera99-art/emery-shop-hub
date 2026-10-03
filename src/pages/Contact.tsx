@@ -29,8 +29,8 @@ const Contact = () => {
             <div>
               <p className="text-muted-foreground mb-8">Have a question or feedback? We'd love to hear from you.</p>
               <div className="space-y-4">
-                <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-accent" /><span>123 Style Ave, New York, NY 10001</span></div>
-                <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-accent" /><span>(555) 123-4567</span></div>
+                <div className="flex items-center gap-3"><MapPin className="h-5 w-5 text-accent" /><span>Kigali, Rwanda</span></div>
+                <div className="flex items-center gap-3"><Phone className="h-5 w-5 text-accent" /><span>+250 788 000 000</span></div>
                 <div className="flex items-center gap-3"><Mail className="h-5 w-5 text-accent" /><span>hello@emerycollection.com</span></div>
               </div>
             </div>
