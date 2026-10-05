@@ -43,6 +43,7 @@ import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
 import ChatTrainingManager from "@/components/admin/ChatTrainingManager";
 import ChatAutoReplyMonitor from "@/components/admin/ChatAutoReplyMonitor";
+import ShopOverview from "@/components/admin/ShopOverview";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
@@ -790,6 +791,8 @@ const Admin = () => {
                   </div>
                 ))}
               </div>
+
+              <ShopOverview onOpenTab={setActiveTab} />
 
               {/* Quick Actions */}
               <h2 className="font-display text-xl font-bold mb-4">Quick Actions</h2>
