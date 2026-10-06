@@ -43,7 +43,8 @@ import RolesManager from "@/components/admin/RolesManager";
 import BlogManager from "@/components/admin/BlogManager";
 import ChatTrainingManager from "@/components/admin/ChatTrainingManager";
 import ChatAutoReplyMonitor from "@/components/admin/ChatAutoReplyMonitor";
-import ShopOverview from "@/components/admin/ShopOverview";
+import CategoriesManager from "@/components/admin/CategoriesManager";
+import ShopBrandingEditor from "@/components/admin/ShopBrandingEditor";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
@@ -489,7 +490,7 @@ const useAdminSettings = () => {
   useEffect(() => { refresh(); }, []);
 
   const saveSettings = async (newSettings: SettingsData) => {
-    const entries = Object.entries(newSettings);
+    const entries = Object.entries(newSettings).filter(([key]) => ["stripeEnabled", "stripePublishableKey", "currency"].includes(key));
     for (const [key, value] of entries) {
       await supabase.from("store_settings").upsert(
         { key, value, updated_at: new Date().toISOString() },
@@ -537,6 +538,7 @@ const Admin = () => {
   const visitorStats = useVisitorStats();
   const chat = useAdminChat();
   const adminProducts = useAdminProducts();
+  const categoryOptions = Array.from(new Set([...CATEGORIES, ...adminProducts.products.map((product) => product.category), productForm.category])).filter(Boolean);
   const adminReviews = useAdminReviews();
   const adminSettings = useAdminSettings();
   const chatConfigAdmin = useAdminChatConfig();
@@ -769,94 +771,17 @@ const Admin = () => {
           {/* ── DASHBOARD ── */}
           {activeTab === "dashboard" && (
             <div>
-              <h1 className="font-display text-3xl font-bold mb-8">Dashboard</h1>
-              <div className="bg-card rounded-lg p-4 shadow-soft mb-6 flex items-center gap-3">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
-                </span>
-                <span className="text-sm font-medium">{visitorStats.totalToday} visitors today</span>
-                <span className="ml-auto text-xs text-muted-foreground">Live from database</span>
-              </div>
-
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-                {stats.map((s) => (
-                  <div key={s.label} className="bg-card rounded-lg p-5 shadow-soft">
-                    <div className="flex items-center justify-between mb-2">
-                      <s.icon className="h-5 w-5 text-accent" />
-                      <span className="text-xs font-medium text-muted-foreground">{s.change}</span>
-                    </div>
-                    <p className="text-2xl font-bold">{s.value}</p>
-                    <p className="text-xs text-muted-foreground">{s.label}</p>
-                  </div>
+              <h1 className="font-display text-3xl font-bold mb-6">Shop dashboard</h1>
+              <nav aria-label="Dashboard sections" className="flex flex-wrap gap-2 mb-8">
+                {["orders", "categories", "products", "settings"].map((section) => (
+                  <Button key={section} variant="outline" size="sm" onClick={() => document.getElementById(`dashboard-${section}`)?.scrollIntoView({ behavior: "smooth", block: "start" })} className="capitalize">{section}</Button>
                 ))}
-              </div>
-
-              <ShopOverview onOpenTab={setActiveTab} />
-
-              {/* Quick Actions */}
-              <h2 className="font-display text-xl font-bold mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                <button onClick={() => { setActiveTab("products"); setTimeout(openAddProduct, 100); }} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
-                  <Plus className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-sm font-medium">Add Product</p>
-                </button>
-                <button onClick={() => setActiveTab("chat")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
-                  <MessageSquare className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-sm font-medium">View Chats</p>
-                </button>
-                <button onClick={() => setActiveTab("visitors")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
-                  <Eye className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-sm font-medium">Track Visitors</p>
-                </button>
-                <button onClick={() => setActiveTab("settings")} className="bg-card rounded-lg p-4 shadow-soft hover:shadow-elevated transition-shadow text-left">
-                  <Settings className="h-5 w-5 text-accent mb-2" />
-                  <p className="text-sm font-medium">Settings</p>
-                </button>
-              </div>
-
-              {/* Seed Data */}
-              {adminProducts.products.length === 0 && (
-                <div className="bg-card rounded-lg p-6 shadow-soft mb-8">
-                  <h3 className="font-display text-lg font-bold mb-2">No products in database</h3>
-                  <p className="text-sm text-muted-foreground mb-4">Seed the database with initial product data to get started.</p>
-                  <div className="flex gap-3">
-                    <Button onClick={adminProducts.seedProducts} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                      <Plus className="h-4 w-4 mr-1" /> Seed Products
-                    </Button>
-                    <Button onClick={adminReviews.seedReviews} variant="outline">
-                      <Plus className="h-4 w-4 mr-1" /> Seed Reviews
-                    </Button>
-                  </div>
-                </div>
-              )}
-
-              {/* Recent Visitors */}
-              <h2 className="font-display text-xl font-bold mb-4">Recent Visitors</h2>
-              <div className="bg-card rounded-lg shadow-soft overflow-hidden">
-                <table className="w-full text-sm">
-                  <thead className="bg-muted">
-                    <tr>
-                      {["Time", "Page", "Device", "Browser"].map((h) => (
-                        <th key={h} className="text-left p-3 font-medium text-muted-foreground">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visitorStats.visitors.slice(0, 5).map((v) => (
-                      <tr key={v.id} className="border-t border-border">
-                        <td className="p-3 text-xs text-muted-foreground">{new Date(v.created_at).toLocaleString()}</td>
-                        <td className="p-3 font-mono text-xs">{v.page?.split("?")[0]}</td>
-                        <td className="p-3"><span className="px-2 py-0.5 rounded-full text-xs bg-secondary text-secondary-foreground">{v.device}</span></td>
-                        <td className="p-3 text-xs">{v.browser}</td>
-                      </tr>
-                    ))}
-                    {visitorStats.visitors.length === 0 && (
-                      <tr><td colSpan={4} className="p-6 text-center text-muted-foreground text-sm">No visitors yet</td></tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
+              </nav>
+              <section id="dashboard-orders" className="scroll-mt-20 pb-8"><OrdersManager /></section>
+              <CategoriesManager products={adminProducts.products} onRefresh={adminProducts.refresh} onFilter={(category) => {
+                setProductFilter(category || "all");
+                document.getElementById("dashboard-products")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }} />
             </div>
           )}
 
@@ -1033,8 +958,8 @@ const Admin = () => {
           )}
 
           {/* ── PRODUCTS ── */}
-          {activeTab === "products" && (
-            <div>
+          {(activeTab === "products" || activeTab === "dashboard") && (
+            <section id="dashboard-products" className="scroll-mt-20 border-t border-border py-8">
               <div className="flex items-center justify-between mb-6">
                 <h1 className="font-display text-3xl font-bold">Products ({filteredProducts.length})</h1>
                 <div className="flex gap-2">
@@ -1066,7 +991,7 @@ const Admin = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Categories</SelectItem>
-                    {CATEGORIES.map((c) => (
+                    {categoryOptions.map((c) => (
                       <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>
                     ))}
                   </SelectContent>
@@ -1104,7 +1029,7 @@ const Admin = () => {
                   </div>
                 )}
               </div>
-            </div>
+            </section>
           )}
 
           {/* ── REVIEWS (with moderation) ── */}
@@ -1234,33 +1159,13 @@ const Admin = () => {
             </div>
           )}
 
-          {activeTab === "settings" && (
-            <div>
+          {(activeTab === "settings" || activeTab === "dashboard") && (
+            <section id="dashboard-settings" className="scroll-mt-20 border-t border-border py-8">
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
-              <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg space-y-5">
-                <div>
-                  <Label className="mb-1.5 block">Store Name</Label>
-                  <Input value={adminSettings.settings.storeName} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, storeName: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Contact Email</Label>
-                  <Input type="email" value={adminSettings.settings.contactEmail} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, contactEmail: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Phone Number</Label>
-                  <Input value={adminSettings.settings.phone} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, phone: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Address</Label>
-                  <Input value={adminSettings.settings.address} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, address: e.target.value })} />
-                </div>
-                <div>
-                  <Label className="mb-1.5 block">Currency</Label>
-                  <Input value={adminSettings.settings.currency} onChange={(e) => adminSettings.setSettings({ ...adminSettings.settings, currency: e.target.value })} />
-                </div>
-                <Button onClick={() => adminSettings.saveSettings(adminSettings.settings)} className="bg-accent text-accent-foreground hover:bg-accent/90">
-                  <Save className="h-4 w-4 mr-1" /> Save Changes
-                </Button>
+              <ShopBrandingEditor />
+              <div className="max-w-lg mt-6">
+                <Label htmlFor="shop-currency">Currency</Label>
+                <Input id="shop-currency" value={adminSettings.settings.currency} onChange={(event) => adminSettings.setSettings({ ...adminSettings.settings, currency: event.target.value })} />
               </div>
 
               {/* Stripe Configuration */}
@@ -1394,7 +1299,7 @@ const Admin = () => {
                   <RefreshCw className="h-4 w-4 mr-1" /> Reset to Defaults
                 </Button>
               </div>
-            </div>
+            </section>
           )}
         </div>
       </div>
@@ -1430,7 +1335,7 @@ const Admin = () => {
                 <Select value={productForm.category} onValueChange={(v) => setProductForm({ ...productForm, category: v })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {CATEGORIES.map((c) => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
+                    {categoryOptions.map((c) => <SelectItem key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>

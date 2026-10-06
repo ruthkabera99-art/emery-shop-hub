@@ -12,6 +12,8 @@ export interface ThemeConfig {
 
 export interface FooterConfig {
   brandName: string;
+  logoUrl?: string;
+  socialLinks?: { label: string; url: string }[];
   brandTagline: string;
   quickLinks: { label: string; url: string }[];
   categories: { label: string; url: string }[];
@@ -126,10 +128,11 @@ async function loadSetting<T>(key: string, fallback: T): Promise<T> {
 }
 
 async function saveSetting(key: string, value: unknown) {
-  await supabase.from("store_settings").upsert(
+  const { error } = await supabase.from("store_settings").upsert(
     { key, value: JSON.stringify(value), updated_at: new Date().toISOString() },
     { onConflict: "key" }
   );
+  if (error) throw error;
 }
 
 export function useSiteSettings() {
@@ -143,7 +146,7 @@ export function useSiteSettings() {
     try {
       const { key, value } = payload.new;
       const parsed = JSON.parse(value);
-      if (key === "footer_config") setFooter(parsed);
+      if (key === "footer_config") setFooter({ ...defaultFooterConfig, ...parsed });
       else if (key === "menu_config") setMenu(parsed);
       else if (key === "homepage_config") setHomepage(parsed);
       else if (key === "theme_config") setTheme(parsed);
@@ -151,6 +154,8 @@ export function useSiteSettings() {
   }, []);
 
   useEffect(() => {
+    const reloadBranding = () => { loadSetting("footer_config", defaultFooterConfig).then((config) => setFooter({ ...defaultFooterConfig, ...config })); };
+    window.addEventListener("shop-branding-saved", reloadBranding);
     Promise.all([
       loadSetting("theme_config", defaultThemeConfig),
       loadSetting("footer_config", defaultFooterConfig),
@@ -158,7 +163,7 @@ export function useSiteSettings() {
       loadSetting("homepage_config", defaultHomepageConfig),
     ]).then(([t, f, m, h]) => {
       setTheme(t);
-      setFooter(f);
+      setFooter({ ...defaultFooterConfig, ...f });
       setMenu(m);
       setHomepage(h);
       setLoaded(true);
@@ -173,7 +178,7 @@ export function useSiteSettings() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); window.removeEventListener("shop-branding-saved", reloadBranding); };
   }, [handleRealtimeChange]);
 
   return { theme, footer, menu, homepage, loaded };
@@ -204,7 +209,7 @@ export function useAdminFooter() {
 
   useEffect(() => {
     loadSetting("footer_config", defaultFooterConfig).then((c) => {
-      setConfig(c);
+      setConfig({ ...defaultFooterConfig, ...c });
       setLoading(false);
     });
   }, []);

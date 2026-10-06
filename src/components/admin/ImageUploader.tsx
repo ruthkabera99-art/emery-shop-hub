@@ -33,7 +33,14 @@ const ImageUploader = ({ images, onImagesChange, maxImages = 10, bucket = "produ
       return;
     }
 
-    const filesToUpload = Array.from(files).slice(0, remaining);
+    const filesToUpload = Array.from(files).slice(0, remaining).filter((file) => {
+      if (!["image/png", "image/jpeg", "image/webp"].includes(file.type) || file.size > 5 * 1024 * 1024) {
+        toast({ title: "Image not supported", description: "Choose a PNG, JPG or WebP image up to 5MB.", variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    if (filesToUpload.length === 0) { e.target.value = ""; return; }
     setUploading(true);
     setProgress(0);
 
@@ -88,7 +95,7 @@ const ImageUploader = ({ images, onImagesChange, maxImages = 10, bucket = "produ
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/webp"
           multiple
           className="hidden"
           onChange={handleUpload}
@@ -102,13 +109,16 @@ const ImageUploader = ({ images, onImagesChange, maxImages = 10, bucket = "produ
           {images.map((url, i) => (
             <div key={i} className="relative group aspect-square rounded-lg overflow-hidden border border-border">
               <img src={url} alt={`Upload ${i + 1}`} className="w-full h-full object-cover" />
-              <button
+               <Button
                 type="button"
+                 size="icon"
+                 variant="destructive"
+                 aria-label={`Remove image ${i + 1}`}
                 onClick={() => removeImage(i)}
-                className="absolute top-1 right-1 p-1 rounded-full bg-destructive text-destructive-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+                 className="absolute top-1 right-1 h-7 w-7"
               >
                 <X className="h-3 w-3" />
-              </button>
+               </Button>
               {i === 0 && (
                 <span className="absolute bottom-1 left-1 text-[9px] px-1.5 py-0.5 rounded bg-accent text-accent-foreground font-medium">
                   Main
@@ -123,7 +133,7 @@ const ImageUploader = ({ images, onImagesChange, maxImages = 10, bucket = "produ
           className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-accent/50 transition-colors"
         >
           <ImageIcon className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-          <p className="text-sm text-muted-foreground">Click or drag to upload images</p>
+          <p className="text-sm text-muted-foreground">Choose an image</p>
           <p className="text-xs text-muted-foreground mt-1">PNG, JPG, WebP up to 5MB each</p>
         </div>
       )}
