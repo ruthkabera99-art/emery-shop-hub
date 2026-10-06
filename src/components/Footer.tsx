@@ -18,6 +18,7 @@ const Footer = () => {
       <div className="container mx-auto px-4 lg:px-8 py-12 sm:py-20">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-8 sm:gap-12">
           <div className="col-span-2 md:col-span-1">
+            {footer.logoUrl && <img src={footer.logoUrl} alt={`${footer.brandName} logo`} className="h-16 w-auto max-w-full object-contain mb-4" />}
             <h3 className="font-display text-xl font-bold mb-4">
               {footer.brandName.includes("EMERY") ? (
                 <>EMERY <span className="text-gradient-warm">COLLECTION</span></>
@@ -26,6 +27,9 @@ const Footer = () => {
               )}
             </h3>
             <p className="text-sm text-primary-foreground/50 leading-relaxed max-w-[280px]">{footer.brandTagline}</p>
+            <div className="flex flex-wrap gap-4 mt-4">
+              {(footer.socialLinks || []).filter((link) => /^https:\/\//i.test(link.url)).map((link) => <a key={link.url} href={link.url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary-foreground/70 hover:text-accent">{link.label}</a>)}
+            </div>
           </div>
           <div>
             <h4 className="text-xs font-semibold mb-5 uppercase tracking-[0.2em] text-primary-foreground/70">Quick Links</h4>

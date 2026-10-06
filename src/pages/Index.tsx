@@ -21,7 +21,7 @@ const sectionComponents: Record<string, React.ReactNode> = {};
 
 const Index = () => {
   useVisitorTracker();
-  const { homepage, loaded } = useSiteSettings();
+  const { homepage, footer, loaded } = useSiteSettings();
 
   const sections = useMemo(() => {
     if (!loaded) return null;
@@ -53,9 +53,12 @@ const Index = () => {
           {
             "@context": "https://schema.org",
             "@type": "Organization",
-            name: "Emery Collection Shop",
+            name: footer.brandName,
             url: "https://emerycollectionshop.store",
-            logo: "https://emerycollectionshop.store/favicon.ico",
+            ...(footer.logoUrl ? { logo: footer.logoUrl } : {}),
+            ...(footer.contactPhone ? { telephone: footer.contactPhone } : {}),
+            ...(footer.contactEmail ? { email: footer.contactEmail } : {}),
+            ...(footer.contactAddress ? { address: { "@type": "PostalAddress", streetAddress: footer.contactAddress } } : {}),
             description:
               "Hand-picked sneakers, winter boots and Italian leather shoes. Free EU shipping over €100 and 30-day easy returns.",
             contactPoint: [
@@ -66,12 +69,12 @@ const Index = () => {
                 availableLanguage: ["English"],
               },
             ],
-            sameAs: [],
+            sameAs: (footer.socialLinks || []).map((link) => link.url).filter((url) => /^https:\/\//i.test(url)),
           },
           {
             "@context": "https://schema.org",
             "@type": "WebSite",
-            name: "Emery Collection Shop",
+            name: footer.brandName,
             url: "https://emerycollectionshop.store",
             potentialAction: {
               "@type": "SearchAction",
