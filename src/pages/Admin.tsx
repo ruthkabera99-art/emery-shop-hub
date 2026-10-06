@@ -490,7 +490,7 @@ const useAdminSettings = () => {
   useEffect(() => { refresh(); }, []);
 
   const saveSettings = async (newSettings: SettingsData) => {
-    const entries = Object.entries(newSettings);
+    const entries = Object.entries(newSettings).filter(([key]) => ["stripeEnabled", "stripePublishableKey", "currency"].includes(key));
     for (const [key, value] of entries) {
       await supabase.from("store_settings").upsert(
         { key, value, updated_at: new Date().toISOString() },
@@ -1163,6 +1163,10 @@ const Admin = () => {
             <section id="dashboard-settings" className="scroll-mt-20 border-t border-border py-8">
               <h1 className="font-display text-3xl font-bold mb-8">Settings</h1>
               <ShopBrandingEditor />
+              <div className="max-w-lg mt-6">
+                <Label htmlFor="shop-currency">Currency</Label>
+                <Input id="shop-currency" value={adminSettings.settings.currency} onChange={(event) => adminSettings.setSettings({ ...adminSettings.settings, currency: event.target.value })} />
+              </div>
 
               {/* Stripe Configuration */}
               <div className="bg-card rounded-lg p-6 shadow-soft max-w-lg mt-8 border border-border">

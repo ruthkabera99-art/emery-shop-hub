@@ -154,6 +154,8 @@ export function useSiteSettings() {
   }, []);
 
   useEffect(() => {
+    const reloadBranding = () => { loadSetting("footer_config", defaultFooterConfig).then((config) => setFooter({ ...defaultFooterConfig, ...config })); };
+    window.addEventListener("shop-branding-saved", reloadBranding);
     Promise.all([
       loadSetting("theme_config", defaultThemeConfig),
       loadSetting("footer_config", defaultFooterConfig),
@@ -176,7 +178,7 @@ export function useSiteSettings() {
       )
       .subscribe();
 
-    return () => { supabase.removeChannel(channel); };
+    return () => { supabase.removeChannel(channel); window.removeEventListener("shop-branding-saved", reloadBranding); };
   }, [handleRealtimeChange]);
 
   return { theme, footer, menu, homepage, loaded };

@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Save, Plus, Trash2, Loader2 } from "lucide-react";
 
 const ShopBrandingEditor = () => {
-  const { config, setConfig, loading, save } = useAdminFooter();
+  const { config, setConfig, loading } = useAdminFooter();
   const [saving, setSaving] = useState(false);
   const { toast } = useToast();
   const links = config.socialLinks || [];

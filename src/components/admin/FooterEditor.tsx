@@ -4,14 +4,20 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Save, RefreshCw, Plus, Trash2, GripVertical } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import ImageUploader from "@/components/admin/ImageUploader";
 
 const FooterEditor = () => {
   const { config, setConfig, save } = useAdminFooter();
   const { toast } = useToast();
 
   const handleSave = async () => {
-    await save(config);
-    toast({ title: "Footer Saved", description: "Footer settings saved. Refresh the store to see changes." });
+    try {
+      await save(config);
+      window.dispatchEvent(new Event("shop-branding-saved"));
+      toast({ title: "Footer Saved" });
+    } catch (error) {
+      toast({ title: "Couldn't save footer", description: error instanceof Error ? error.message : "Please try again.", variant: "destructive" });
+    }
   };
 
   const handleReset = () => {
@@ -56,6 +62,10 @@ const FooterEditor = () => {
       <div className="bg-card rounded-lg p-6 shadow-soft mb-6 max-w-2xl">
         <h3 className="font-display text-lg font-bold mb-4">Brand</h3>
         <div className="space-y-4">
+          <div>
+            <Label className="mb-1.5 block">Shop Logo</Label>
+            <ImageUploader images={config.logoUrl ? [config.logoUrl] : []} maxImages={1} onImagesChange={(images) => setConfig({ ...config, logoUrl: images[0] || "" })} />
+          </div>
           <div>
             <Label className="mb-1.5 block">Brand Name</Label>
             <Input value={config.brandName} onChange={(e) => setConfig({ ...config, brandName: e.target.value })} />
