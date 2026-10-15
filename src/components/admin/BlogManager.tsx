@@ -3,6 +3,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useBlogPosts, BlogPost } from "@/hooks/useBlog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import ImageUploader from "@/components/admin/ImageUploader";
 import RichTextEditor from "@/components/admin/RichTextEditor";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ const emptyPost = {
   author: "Emery Collection",
   tags: [] as string[],
   published: false,
+  date: new Date().toISOString().slice(0, 10),
 };
 
 const BlogManager = () => {
@@ -31,7 +33,7 @@ const BlogManager = () => {
 
   const openNew = () => {
     setEditing(null);
-    setForm(emptyPost);
+    setForm({ ...emptyPost, date: new Date().toISOString().slice(0, 10) });
     setTagsInput("");
     setShowForm(true);
   };
@@ -47,6 +49,7 @@ const BlogManager = () => {
       author: post.author,
       tags: post.tags,
       published: post.published,
+      date: (post.published_at || post.created_at || new Date().toISOString()).slice(0, 10),
     });
     setTagsInput(post.tags.join(", "));
     setShowForm(true);
@@ -72,7 +75,7 @@ const BlogManager = () => {
       author: form.author,
       tags,
       published: form.published,
-      published_at: form.published ? new Date().toISOString() : null,
+      published_at: form.date ? new Date(form.date + "T12:00:00").toISOString() : new Date().toISOString(),
     };
 
     let error;
@@ -117,7 +120,18 @@ const BlogManager = () => {
           content={form.content}
           onChange={(html) => setForm({ ...form, content: html })}
         />
-        <Input placeholder="Cover Image URL" value={form.cover_image} onChange={(e) => setForm({ ...form, cover_image: e.target.value })} />
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Cover image</label>
+          <ImageUploader
+            images={form.cover_image ? [form.cover_image] : []}
+            onImagesChange={(imgs) => setForm({ ...form, cover_image: imgs[0] || "" })}
+            maxImages={1}
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-sm font-medium">Article date</label>
+          <Input type="date" value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+        </div>
         <Input placeholder="Author" value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} />
         <Input placeholder="Tags (comma separated)" value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} />
         <div className="flex items-center gap-3">
@@ -142,7 +156,8 @@ const BlogManager = () => {
       ) : (
         <div className="space-y-2">
           {posts.map((post) => (
-            <div key={post.id} className="flex items-center justify-between p-3 bg-secondary/40 rounded-lg">
+            <div key={post.id} className="flex items-center gap-3 justify-between p-3 bg-secondary/40 rounded-lg">
+              {post.cover_image && <img src={post.cover_image} alt="" className="h-10 w-10 rounded object-cover shrink-0" />}
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-2">
                   {post.published ? (
@@ -152,7 +167,7 @@ const BlogManager = () => {
                   )}
                   <span className="text-sm font-medium truncate">{post.title}</span>
                 </div>
-                <p className="text-xs text-muted-foreground mt-0.5">/blog/{post.slug}</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{new Date(post.published_at || post.created_at).toLocaleDateString()} · /blog/{post.slug}</p>
               </div>
               <div className="flex gap-1 shrink-0">
                 <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(post)}>
