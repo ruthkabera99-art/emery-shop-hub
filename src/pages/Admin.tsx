@@ -540,6 +540,13 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const categoryOptions = Array.from(new Set([...CATEGORIES, ...adminProducts.products.map((product) => product.category), productForm.category])).filter(Boolean);
   const adminReviews = useAdminReviews();
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<string>("all");
+  const [reviewProductFilter, setReviewProductFilter] = useState<string>("all");
+  const productNameById = new Map(adminProducts.products.map((p) => [p.id, p.name]));
+  const filteredReviews = adminReviews.reviews.filter((r) =>
+    (reviewStatusFilter === "all" || r.status === reviewStatusFilter) &&
+    (reviewProductFilter === "all" || r.product_id === reviewProductFilter)
+  );
   const adminSettings = useAdminSettings();
   const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
@@ -1063,9 +1070,28 @@ const Admin = () => {
                   <p className="text-xs text-muted-foreground">Rejected</p>
                 </div>
               </div>
+              <div className="flex flex-wrap gap-3 mb-4">
+                <select aria-label="Filter by status" value={reviewStatusFilter} onChange={(e) => setReviewStatusFilter(e.target.value)} className="h-9 rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="all">All statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="approved">Approved</option>
+                  <option value="rejected">Rejected</option>
+                </select>
+                <select aria-label="Filter by product" value={reviewProductFilter} onChange={(e) => setReviewProductFilter(e.target.value)} className="h-9 max-w-xs rounded-md border border-input bg-background px-3 text-sm">
+                  <option value="all">All products</option>
+                  {adminProducts.products.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                </select>
+                <span className="self-center text-xs text-muted-foreground">{filteredReviews.length} shown</span>
+              </div>
               <div className="grid gap-4">
-                {adminReviews.reviews.map((r) => (
+                {filteredReviews.length === 0 && <p className="text-sm text-muted-foreground">No reviews match these filters.</p>}
+                {filteredReviews.map((r) => (
                   <div key={r.id} className="bg-card rounded-lg p-5 shadow-soft">
+                    {r.product_id && (
+                      <a href={`/product/${r.product_id}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-accent hover:underline block mb-1">
+                        {productNameById.get(r.product_id) ?? "Unknown product"}
+                      </a>
+                    )}
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-1 mb-2">
                         {Array.from({ length: r.rating }).map((_, j) => (
