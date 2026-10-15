@@ -540,6 +540,13 @@ const Admin = () => {
   const adminProducts = useAdminProducts();
   const categoryOptions = Array.from(new Set([...CATEGORIES, ...adminProducts.products.map((product) => product.category), productForm.category])).filter(Boolean);
   const adminReviews = useAdminReviews();
+  const [reviewStatusFilter, setReviewStatusFilter] = useState<string>("all");
+  const [reviewProductFilter, setReviewProductFilter] = useState<string>("all");
+  const productNameById = new Map(adminProducts.products.map((p) => [p.id, p.name]));
+  const filteredReviews = adminReviews.reviews.filter((r) =>
+    (reviewStatusFilter === "all" || r.status === reviewStatusFilter) &&
+    (reviewProductFilter === "all" || r.product_id === reviewProductFilter)
+  );
   const adminSettings = useAdminSettings();
   const chatConfigAdmin = useAdminChatConfig();
   const { isAdmin, loading: roleLoading } = useAdminRole();
