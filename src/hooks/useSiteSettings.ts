@@ -74,6 +74,7 @@ export const defaultMenuConfig: MenuConfig = {
     { label: "Home", url: "/", visible: true },
     { label: "Shop", url: "/shop", visible: true },
     { label: "Categories", url: "/shop", visible: true },
+    { label: "Blog", url: "/blog", visible: true },
     { label: "About Us", url: "/about", visible: true },
     { label: "Contact", url: "/contact", visible: true },
   ],
