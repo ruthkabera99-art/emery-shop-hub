@@ -45,6 +45,7 @@ import ChatTrainingManager from "@/components/admin/ChatTrainingManager";
 import ChatAutoReplyMonitor from "@/components/admin/ChatAutoReplyMonitor";
 import CategoriesManager from "@/components/admin/CategoriesManager";
 import ShopBrandingEditor from "@/components/admin/ShopBrandingEditor";
+import AboutEditor from "@/components/admin/AboutEditor";
 import { useAdminRole } from "@/hooks/useAdminRole";
 import { useAdminChatConfig } from "@/hooks/useSiteSettings";
 
@@ -132,6 +133,7 @@ const tabs = [
   { id: "homepage", label: "Homepage", icon: Layout },
   { id: "roles", label: "Roles", icon: ShieldCheck },
   { id: "blog", label: "Blog", icon: FileText },
+  { id: "about", label: "About Us", icon: FileText },
   { id: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -1164,6 +1166,7 @@ const Admin = () => {
 
           {/* ── FOOTER ── */}
           {activeTab === "footer" && <FooterEditor />}
+          {activeTab === "about" && <AboutEditor />}
 
           {/* ── MENU ── */}
           {activeTab === "menu" && <MenuEditor />}
